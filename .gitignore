@@ -1,6 +1,7 @@
 *.zip
 data/
 models/
+.vscode
 
 # Python
 __pycache__/
