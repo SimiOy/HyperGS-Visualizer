@@ -1,11 +1,12 @@
-import { useEffect, useState } from "react";
-import { Canvas } from "@react-three/fiber";
+import { useRef, useEffect, useState } from "react";
+import { Canvas, type ThreeEvent } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 
+const CUBE_SIZE = 2;
 const N = 128;
 
-// Build a DataTexture from a Float32Array, with Y flipped for Three.js
+// build a DataTexture from a Float32Array, with Y flipped for Three.js
 function float32ToTexture(data: Float32Array): THREE.DataTexture {
   const rgba = new Uint8Array(N * N * 4);
   let min = Infinity,
@@ -32,44 +33,94 @@ function float32ToTexture(data: Float32Array): THREE.DataTexture {
   return tex;
 }
 
-const sideMat = new THREE.MeshStandardMaterial({
-  color: "#1a1a2e",
-  transparent: true,
-  opacity: 0.18,
-  depthWrite: false,
-});
+interface SceneProps {
+  bandTexture: THREE.DataTexture | null;
+  selectedPixel: { row: number; col: number } | null;
+  onPixelClick: (row: number, col: number) => void;
+  colColor: string;
+}
+
+function Scene({ bandTexture, selectedPixel, onPixelClick, colColor }: SceneProps) {
+  const cubeRef = useRef<THREE.Mesh>(null!);
+
+  const materials = [
+    new THREE.MeshStandardMaterial({ color: "#1a1a2e", transparent: true, opacity: 0.18, depthWrite: false }),
+    new THREE.MeshStandardMaterial({ color: "#1a1a2e", transparent: true, opacity: 0.18, depthWrite: false }),
+    new THREE.MeshStandardMaterial({ color: "#1a1a2e", transparent: true, opacity: 0.18, depthWrite: false }),
+    new THREE.MeshStandardMaterial({ color: "#1a1a2e", transparent: true, opacity: 0.18, depthWrite: false }),
+    new THREE.MeshStandardMaterial({ color: "#ffffff", map: bandTexture ?? undefined }), // front - fully opaque
+    new THREE.MeshStandardMaterial({ color: "#1a1a2e", transparent: true, opacity: 0.0, depthWrite: false }),
+  ];
+
+  useEffect(() => {
+    if (bandTexture) {
+      const mat = materials[4] as THREE.MeshStandardMaterial;
+      mat.map = bandTexture;
+      mat.needsUpdate = true;
+    }
+  }, [bandTexture]);
+
+  function handleClick(e: ThreeEvent<MouseEvent>) {
+    e.stopPropagation();
+    if (!e.face || !e.uv) return;
+    if (e.face.materialIndex !== 4) return;
+    const col = Math.max(0, Math.min(N - 1, Math.floor(e.uv.x * N)));
+    const row = Math.max(0, Math.min(N - 1, Math.floor((1 - e.uv.y) * N)));
+    // callback passed here
+    onPixelClick(row, col);
+  }
+
+  const colX = selectedPixel ? (selectedPixel.col / N - 0.5) * CUBE_SIZE : 0;
+  const colY = selectedPixel ? (0.5 - selectedPixel.row / N) * CUBE_SIZE : 0;
+
+  // Gen AI Assisted
+  return (
+    <>
+      <ambientLight intensity={0.5} />
+      <directionalLight position={[5, 5, 5]} intensity={1.0} />
+      <directionalLight position={[-3, 2, -3]} intensity={0.3} />
+
+      <mesh ref={cubeRef} material={materials} onClick={handleClick}>
+        <boxGeometry args={[CUBE_SIZE, CUBE_SIZE, CUBE_SIZE]} />
+      </mesh>
+
+      <lineSegments>
+        <edgesGeometry args={[new THREE.BoxGeometry(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE)]} />
+        <lineBasicMaterial color="#334" />
+      </lineSegments>
+
+      {selectedPixel && (
+        <mesh position={[colX, colY, 0]} renderOrder={1}>
+          <boxGeometry args={[CUBE_SIZE / N, CUBE_SIZE / N, CUBE_SIZE + 0.04]} />
+          <meshStandardMaterial color={colColor} depthWrite={false} />
+        </mesh>
+      )}
+
+      <OrbitControls makeDefault enablePan={false} />
+    </>
+  );
+}
 
 interface Props {
   bandData: Float32Array | null;
+  selectedPixel: { row: number; col: number } | null;
+  onPixelClick: (row: number, col: number) => void;
+  colColor?: string;
 }
 
-export default function DataCube({ bandData }: Props) {
+export default function DataCube({ bandData, selectedPixel, onPixelClick, colColor = "#ff6b35" }: Props) {
   const [texture, setTexture] = useState<THREE.DataTexture | null>(null);
 
   useEffect(() => {
     if (bandData) setTexture(float32ToTexture(bandData));
   }, [bandData]);
 
-  const materials = [
-    sideMat,
-    sideMat,
-    sideMat,
-    sideMat,
-    new THREE.MeshStandardMaterial({ color: "#ffffff", map: texture ?? undefined }), // front
-    new THREE.MeshStandardMaterial({ color: "#1a1a2e", transparent: true, opacity: 0.0, depthWrite: false }), // back
-  ];
-
   return (
     <Canvas
       camera={{ position: [2.8, 2.2, 3.2], fov: 42 }}
       style={{ width: "100%", height: "100%", background: "#0a0a12" }}
     >
-      <ambientLight intensity={0.5} />
-      <directionalLight position={[5, 5, 5]} intensity={1.0} />
-      <mesh material={materials}>
-        <boxGeometry args={[2, 2, 2]} />
-      </mesh>
-      <OrbitControls enablePan={false} />
+      <Scene bandTexture={texture} selectedPixel={selectedPixel} onPixelClick={onPixelClick} colColor={colColor} />
     </Canvas>
   );
 }
