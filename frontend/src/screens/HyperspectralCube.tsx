@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import DataCube from "../components/DataCube";
 import SpectralPlot from "../components/SpectralPlot";
+import BandSlice from "../components/BandSlice";
 
 const API = "/api";
 const CUBE_BAND = 60;
@@ -106,6 +107,8 @@ export default function HyperspectralCube() {
 
       {/* Right - band slice + slider */}
       <div style={{ ...panel, borderLeft: "1px solid #1e1e2e" }}>
+        <BandSlice bandData={sliderBandData} highlightColor={COL_COLOR} />
+
         {/* Slider */}
         <div style={{ padding: "12px 16px", borderTop: "1px solid #1e1e2e" }}>
           <div style={{ fontSize: 11, color: "#aaa", marginBottom: 8 }}>

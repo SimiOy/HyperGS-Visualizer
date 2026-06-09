@@ -115,7 +115,13 @@ interface Props {
   highlightBand?: number;
 }
 
-export default function DataCube({ bandData, selectedPixel, onPixelClick, colColor = "#ff6b35", highlightBand = 0 }: Props) {
+export default function DataCube({
+  bandData,
+  selectedPixel,
+  onPixelClick,
+  colColor = "#ff6b35",
+  highlightBand = 0,
+}: Props) {
   const [texture, setTexture] = useState<THREE.DataTexture | null>(null);
 
   useEffect(() => {
@@ -127,7 +133,13 @@ export default function DataCube({ bandData, selectedPixel, onPixelClick, colCol
       camera={{ position: [2.8, 2.2, 3.2], fov: 42 }}
       style={{ width: "100%", height: "100%", background: "#0a0a12" }}
     >
-      <Scene bandTexture={texture} selectedPixel={selectedPixel} onPixelClick={onPixelClick} colColor={colColor} highlightBand={highlightBand} />
+      <Scene
+        bandTexture={texture}
+        selectedPixel={selectedPixel}
+        onPixelClick={onPixelClick}
+        colColor={colColor}
+        highlightBand={highlightBand}
+      />
     </Canvas>
   );
 }
