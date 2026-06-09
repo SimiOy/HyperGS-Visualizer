@@ -1,4 +1,14 @@
-.venv/
-.env/
 *.zip
 data/
+models/
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+.env/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
