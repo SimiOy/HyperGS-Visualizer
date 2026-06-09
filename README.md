@@ -16,6 +16,11 @@ pip install poetry
 poetry install
 ```
 
+And for torch with GPU support:
+```bash
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124 --force-reinstall --no-deps
+```
+
 ### 3. Activate the virtual environment
 
 ```
