@@ -30,10 +30,9 @@ def main() -> None:
     else:
         print(f"Zip already exists at {ZIP_PATH}, skipping download.")
 
-    DEST_DIR.mkdir(exist_ok=True)
-    print(f"Extracting to {DEST_DIR} ...")
+    print(f"Extracting to {ROOT} ...")
     with zipfile.ZipFile(ZIP_PATH, "r") as zf:
-        zf.extractall(DEST_DIR)
+        zf.extractall(ROOT)
 
     ZIP_PATH.unlink()
     print(f"Done. Data is in {DEST_DIR}")
