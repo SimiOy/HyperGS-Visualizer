@@ -38,9 +38,10 @@ interface SceneProps {
   selectedPixel: { row: number; col: number } | null;
   onPixelClick: (row: number, col: number) => void;
   colColor: string;
+  highlightBand: number;
 }
 
-function Scene({ bandTexture, selectedPixel, onPixelClick, colColor }: SceneProps) {
+function Scene({ bandTexture, selectedPixel, onPixelClick, colColor, highlightBand }: SceneProps) {
   const cubeRef = useRef<THREE.Mesh>(null!);
 
   const materials = [
@@ -89,6 +90,11 @@ function Scene({ bandTexture, selectedPixel, onPixelClick, colColor }: SceneProp
         <lineBasicMaterial color="#334" />
       </lineSegments>
 
+      <mesh position={[0, 0, -CUBE_SIZE / 2 + (highlightBand / (N - 1)) * CUBE_SIZE]} renderOrder={1}>
+        <planeGeometry args={[CUBE_SIZE, CUBE_SIZE]} />
+        <meshStandardMaterial color="#09c413" transparent opacity={0.35} side={THREE.DoubleSide} depthWrite={false} />
+      </mesh>
+
       {selectedPixel && (
         <mesh position={[colX, colY, 0]} renderOrder={1}>
           <boxGeometry args={[CUBE_SIZE / N, CUBE_SIZE / N, CUBE_SIZE + 0.04]} />
@@ -106,9 +112,10 @@ interface Props {
   selectedPixel: { row: number; col: number } | null;
   onPixelClick: (row: number, col: number) => void;
   colColor?: string;
+  highlightBand?: number;
 }
 
-export default function DataCube({ bandData, selectedPixel, onPixelClick, colColor = "#ff6b35" }: Props) {
+export default function DataCube({ bandData, selectedPixel, onPixelClick, colColor = "#ff6b35", highlightBand = 0 }: Props) {
   const [texture, setTexture] = useState<THREE.DataTexture | null>(null);
 
   useEffect(() => {
@@ -120,7 +127,7 @@ export default function DataCube({ bandData, selectedPixel, onPixelClick, colCol
       camera={{ position: [2.8, 2.2, 3.2], fov: 42 }}
       style={{ width: "100%", height: "100%", background: "#0a0a12" }}
     >
-      <Scene bandTexture={texture} selectedPixel={selectedPixel} onPixelClick={onPixelClick} colColor={colColor} />
+      <Scene bandTexture={texture} selectedPixel={selectedPixel} onPixelClick={onPixelClick} colColor={colColor} highlightBand={highlightBand} />
     </Canvas>
   );
 }

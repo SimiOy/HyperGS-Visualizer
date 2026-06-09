@@ -55,6 +55,7 @@ export default function HyperspectralCube() {
     flexDirection: "column",
   };
 
+  // Gen AI Assisted
   return (
     <div style={{ width: "100%", height: "100%", display: "flex" }}>
       {/* Left - spectral curve */}
@@ -86,6 +87,7 @@ export default function HyperspectralCube() {
           selectedPixel={selectedPixel}
           onPixelClick={handlePixelClick}
           colColor={COL_COLOR}
+          highlightBand={sliderBand}
         />
         <div
           style={{
