@@ -14,7 +14,7 @@ def _hdr_path(frame: int) -> Path:
 
 
 @lru_cache(maxsize=8)
-def load_cube(frame: int) -> np.ndarray:
+def load_cube(frame: int = 0) -> np.ndarray:
     path = _hdr_path(frame)
     cube = np.asarray(envi.open(path).load()).astype(np.float32)
     cube -= cube.min()
@@ -27,3 +27,15 @@ def load_cube(frame: int) -> np.ndarray:
 def wavelengths() -> list[float]:
     path = _hdr_path(0)
     return list(envi.open(path).bands.centers)
+
+
+def n_frames() -> int:
+    return len(list(DATA_DIR.glob("MakoSpectrometer-*.img.hdr")))
+
+
+def band_image(band: int) -> np.ndarray:
+    return load_cube()[:, :, band]
+
+
+def spectrum(row: int, col: int) -> list[float]:
+    return load_cube()[row, col, :].tolist()
