@@ -4,9 +4,10 @@ interface Props {
   wavelengths: number[];
   spectrum: number[] | null;
   color: string;
+  highlightBand?: number;
 }
 
-export default function SpectralPlot({ wavelengths, spectrum, color }: Props) {
+export default function SpectralPlot({ wavelengths, spectrum, color, highlightBand }: Props) {
   const data = [];
   if (spectrum) {
     for (let i = 0; i < spectrum.length; i++) {
@@ -14,6 +15,7 @@ export default function SpectralPlot({ wavelengths, spectrum, color }: Props) {
     }
   }
 
+  // Gen AI Assisted
   return (
     <div
       style={{
@@ -74,6 +76,14 @@ export default function SpectralPlot({ wavelengths, spectrum, color }: Props) {
                 }}
                 itemStyle={{ color: "#ccc" }}
               />
+              {highlightBand !== undefined && (
+                <ReferenceLine
+                  x={wavelengths[highlightBand]}
+                  stroke="#4caf50"
+                  strokeDasharray="3 3"
+                  strokeWidth={1.5}
+                />
+              )}
               <Line
                 type="monotone"
                 dataKey="v"

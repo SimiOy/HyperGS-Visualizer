@@ -14,6 +14,8 @@ interface Meta {
 export default function HyperspectralCube() {
   const [meta, setMeta] = useState<Meta | null>(null);
   const [cubeBandData, setCubeBandData] = useState<Float32Array | null>(null);
+  const [sliderBand, setSliderBand] = useState(0);
+  const [sliderBandData, setSliderBandData] = useState<Float32Array | null>(null);
   const [spectrum, setSpectrum] = useState<number[] | null>(null);
   const [selectedPixel, setSelectedPixel] = useState<{
     row: number;
@@ -29,6 +31,13 @@ export default function HyperspectralCube() {
       .then((r) => r.arrayBuffer())
       .then((buf) => setCubeBandData(new Float32Array(buf)));
   }, []);
+
+  // Fetch right-panel band whenever slider moves
+  useEffect(() => {
+    fetch(`${API}/band/${sliderBand}`)
+      .then((r) => r.arrayBuffer())
+      .then((buf) => setSliderBandData(new Float32Array(buf)));
+  }, [sliderBand]);
 
   const handlePixelClick = useCallback((row: number, col: number) => {
     setSelectedPixel({ row, col });
@@ -54,6 +63,7 @@ export default function HyperspectralCube() {
           wavelengths={meta?.wavelengths ?? []}
           spectrum={spectrum}
           color={COL_COLOR}
+          highlightBand={sliderBand}
         />
         {selectedPixel && (
           <div
@@ -89,6 +99,26 @@ export default function HyperspectralCube() {
           }}
         >
           click face to select pixel and drag to orbit
+        </div>
+      </div>
+
+      {/* Right - band slice + slider */}
+      <div style={{ ...panel, borderLeft: "1px solid #1e1e2e" }}>
+        {/* Slider */}
+        <div style={{ padding: "12px 16px", borderTop: "1px solid #1e1e2e" }}>
+          <div style={{ fontSize: 11, color: "#aaa", marginBottom: 8 }}>
+            Spectral band &nbsp;
+            <span style={{ color: "#4caf50", fontWeight: 600 }}>{sliderBand}</span>
+          </div>
+          <input
+            type="range"
+            min={0}
+            max={127}
+            step={1}
+            value={sliderBand}
+            onChange={(e) => setSliderBand(Number(e.target.value))}
+            style={{ width: "100%", accentColor: "#4caf50" }}
+          />
         </div>
       </div>
     </div>
