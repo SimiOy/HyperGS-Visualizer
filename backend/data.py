@@ -7,6 +7,7 @@ import numpy as np
 import spectral.io.envi as envi
 
 DATA_DIR = Path(__file__).resolve().parents[1] / "data" / "complex_facility" / "Images"
+MODELS_DIR = Path(__file__).resolve().parents[1] / "models"
 
 
 def _hdr_path(frame: int) -> Path:
@@ -39,3 +40,9 @@ def band_image(band: int) -> np.ndarray:
 
 def spectrum(row: int, col: int) -> list[float]:
     return load_cube()[row, col, :].tolist()
+
+
+@lru_cache(maxsize=8)
+def tsne_coords(model: str, split: str) -> np.ndarray:
+    path = MODELS_DIR / f"tsne_{model}_{split}.npy"
+    return np.load(path).astype(np.float32)

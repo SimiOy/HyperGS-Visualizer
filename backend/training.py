@@ -112,8 +112,8 @@ def train_model_vae(model: SpectralVAE, train_loader, test_loader, epochs=50):
         scheduler.step()
 
     model.eval()
-    train_loss = eval_loss_vae(model, train_loader)
-    test_loss = eval_loss_vae(model, test_loader)
+    train_loss = eval_loss_vae(model, train_loader, device=DEVICE)
+    test_loss = eval_loss_vae(model, test_loader, device=DEVICE)
     print(f"VAE | train loss: {train_loss:.6f}   test loss: {test_loss:.6f}")
 
 

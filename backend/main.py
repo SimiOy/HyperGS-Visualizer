@@ -5,7 +5,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 
-from .data import band_image, n_frames, spectrum, wavelengths
+from .data import band_image, n_frames, spectrum, tsne_coords, wavelengths
 
 app = FastAPI(title="HyperGS Visualizer API")
 
@@ -41,3 +41,12 @@ def get_spectrum(row: int, col: int):
     if not (0 <= row < 128 and 0 <= col < 128):
         raise HTTPException(400, "row and col must be 0-127")
     return {"spectrum": spectrum(row, col), "wavelengths": wavelengths()}
+
+
+@app.get("/tsne/{model}/{split}")
+def get_tsne(model: str, split: str):
+    try:
+        arr = tsne_coords(model, split)
+    except FileNotFoundError:
+        raise HTTPException(404, f"no t-SNE results for {model}/{split}")
+    return Response(content=arr.tobytes(), media_type="application/octet-stream")
