@@ -131,14 +131,14 @@ if __name__ == "__main__":
     MODELS.mkdir(parents=True, exist_ok=True)
 
     train_loader, test_loader = load_data()
-    model_ae, model_vae = None, None
+    model_ae = SpectralAE(n_bands=128, latent_dim=32).to(DEVICE)
+    model_vae = SpectralVAE(n_bands=128, latent_dim=32, beta=0.5).to(DEVICE)
 
     ae_path = MODELS / "ae.pt"
     if ae_path.exists():
         model_ae.load_state_dict(torch.load(ae_path, map_location=DEVICE))
         model_ae.eval()
     else:
-        model_ae = SpectralAE(n_bands=128, latent_dim=32).to(DEVICE)
         train_model_ae(model_ae, train_loader, test_loader, epochs=50)
         torch.save(model_ae.state_dict(), ae_path)
         print(f"saved {ae_path}")
@@ -148,7 +148,6 @@ if __name__ == "__main__":
         model_vae.load_state_dict(torch.load(vae_path, map_location=DEVICE))
         model_vae.eval()
     else:
-        model_vae = SpectralVAE(n_bands=128, latent_dim=32, beta=0.5).to(DEVICE)
         train_model_vae(model_vae, train_loader, test_loader, epochs=50)
         torch.save(model_vae.state_dict(), vae_path)
         print(f"saved {vae_path}")
@@ -158,7 +157,7 @@ if __name__ == "__main__":
 
     for model_name, (model, is_vae) in models.items():
         for split_name, loader in splits.items():
-            latents = encode_all(model, loader, is_vae)
+            latents = encode_all(model, loader, is_vae, device=DEVICE)
             coords = fit_tsne(latents)
             out_path = MODELS / f"tsne_{model_name}_{split_name}.npy"
             np.save(out_path, coords)
