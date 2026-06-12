@@ -1,4 +1,4 @@
-from model import SpectralAE, SpectralVAE
+from model import SpectralAE, SpectralVAE, eval_loss_vae, encode_all, eval_loss_ae
 
 import numpy as np
 import torch
@@ -6,7 +6,9 @@ import torch.nn.functional as F
 from torch.utils.data import TensorDataset, DataLoader
 import spectral.io.envi as envi
 from pathlib import Path
-from tqdm.notebook import tqdm
+from tqdm.auto import tqdm
+from sklearn.manifold import TSNE
+
 
 DATA = Path("../data/complex_facility/Images")
 MODELS = Path("../models")
@@ -71,62 +73,57 @@ def load_data(glob="MakoSpectrometer-*.img.hdr"):
     return train_loader, test_loader
 
 
-def train_model_ae(model: SpectralAE, data_loader, epochs=50):
+def train_model_ae(model: SpectralAE, train_loader, test_loader, epochs=50):
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-5)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs)
 
-    losses = []
-    model.train()
-    for epoch in tqdm(range(epochs), desc="training"):
-        ep_loss = 0.0
-        for (batch,) in data_loader:
+    for _ in tqdm(range(epochs), desc="training AE"):
+        model.train()
+        for (batch,) in train_loader:
             batch = batch.to(DEVICE)
             recon, _ = model(batch)
             loss = F.huber_loss(recon, batch)
 
             optimizer.zero_grad()
             loss.backward()
-
             optimizer.step()
-            ep_loss += loss.item()
-        losses.append(ep_loss / len(data_loader))
         scheduler.step()
 
     model.eval()
-    print(f"final loss: {losses[-1]:.5f}")
+    train_loss = eval_loss_ae(model, train_loader, device=DEVICE)
+    test_loss = eval_loss_ae(model, test_loader, device=DEVICE)
+    print(f"AE  | train loss: {train_loss:.6f}   test loss: {test_loss:.6f}")
 
 
-def train_model_vae(model: SpectralVAE, data_loader, epochs=50):
+def train_model_vae(model: SpectralVAE, train_loader, test_loader, epochs=50):
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-5)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs)
 
-    losses_total = []
-    losses_recon = []
-    losses_kl = []
-    model.train()
-    for epoch in tqdm(range(epochs), desc="training"):
-        ep_total, ep_recon, ep_kl = 0.0, 0.0, 0.0
-        for (batch,) in data_loader:
+    for _ in tqdm(range(epochs), desc="training VAE"):
+        model.train()
+        for (batch,) in train_loader:
             batch = batch.to(DEVICE)
             recon, z, mu, logvar = model(batch)
-            loss, recon_l, kl_l = model.loss(recon, batch, mu, logvar)
+            loss, _, _ = model.loss(recon, batch, mu, logvar)
 
             optimizer.zero_grad()
             loss.backward()
-
             optimizer.step()
-            ep_total += loss.item()
-            ep_recon += recon_l.item()
-            ep_kl += kl_l.item()
-
-        n = len(data_loader)
-        losses_total.append(ep_total / n)
-        losses_recon.append(ep_recon / n)
-        losses_kl.append(ep_kl / n)
         scheduler.step()
 
     model.eval()
-    print(f"final loss: {losses_total[-1]:.5f}")
+    train_loss = eval_loss_vae(model, train_loader)
+    test_loss = eval_loss_vae(model, test_loader)
+    print(f"VAE | train loss: {train_loss:.6f}   test loss: {test_loss:.6f}")
+
+
+def fit_tsne(latents):
+    rng = np.random.default_rng(0)
+    if len(latents) > MAX_PIXELS_TSNE:
+        idx = rng.choice(len(latents), MAX_PIXELS_TSNE, replace=False)
+        latents = latents[idx]
+    tsne = TSNE(n_components=3, random_state=0, perplexity=30)
+    return tsne.fit_transform(latents).astype(np.float32)
 
 
 if __name__ == "__main__":
@@ -138,5 +135,16 @@ if __name__ == "__main__":
     model_ae = SpectralAE(n_bands=128, latent_dim=32).to(DEVICE)
     model_vae = SpectralVAE(n_bands=128, latent_dim=32, beta=0.5).to(DEVICE)
 
-    train_model_ae(model=model_ae, data_loader=data_loader, epochs=50)
-    train_model_vae(model=model_vae, data_loader=data_loader, epochs=50)
+    train_model_ae(model_ae, train_loader, test_loader, epochs=50)
+    train_model_vae(model_vae, train_loader, test_loader, epochs=50)
+
+    models = {"ae": (model_ae, False), "vae": (model_vae, True)}
+    splits = {"train": train_loader, "test": test_loader}
+
+    for model_name, (model, is_vae) in models.items():
+        for split_name, loader in splits.items():
+            latents = encode_all(model, loader, is_vae)
+            coords = fit_tsne(latents)
+            out_path = MODELS / f"tsne_{model_name}_{split_name}.npy"
+            np.save(out_path, coords)
+            print(f"saved {out_path}  {coords.shape}")
