@@ -14,6 +14,14 @@ const toggleBtn = (active: boolean): CSSProperties => ({
   cursor: "pointer",
 });
 
+// Clip the colour rangebetwwn percentiles so a few outliers dont compress the rest of the
+function percentileRange(values: Float32Array, lowPct = 0.02, highPct = 0.98): [number, number] {
+  const sorted = Float32Array.from(values).sort();
+  const lo = sorted[Math.floor((sorted.length - 1) * lowPct)];
+  const hi = sorted[Math.floor((sorted.length - 1) * highPct)];
+  return [lo, hi];
+}
+
 export default function LatentSpace() {
   const [model, setModel] = useState<"ae" | "vae">("ae");
   const [split, setSplit] = useState<"train" | "test">("train");
@@ -47,17 +55,16 @@ export default function LatentSpace() {
   const colors = useMemo(() => {
     if (!indices) return null;
     const n = indices.length / nBands;
-    let min = Infinity,
-      max = -Infinity;
+    const values = new Float32Array(n);
     for (let i = 0; i < n; i++) {
-      const v = indices[i * nBands + sliderBand];
-      if (v < min) min = v;
-      if (v > max) max = v;
+      values[i] = indices[i * nBands + sliderBand];
     }
+
+    const [min, max] = percentileRange(values);
     const lut = new Lut("rainbow", 512).setMin(min).setMax(max);
     const out = new Float32Array(n * 3);
     for (let i = 0; i < n; i++) {
-      const c = lut.getColor(indices[i * nBands + sliderBand]);
+      const c = lut.getColor(values[i]);
       out[i * 3] = c.r;
       out[i * 3 + 1] = c.g;
       out[i * 3 + 2] = c.b;
@@ -88,7 +95,7 @@ export default function LatentSpace() {
           </div>
         </div>
         <Canvas
-          camera={{ position: [10, 10, 10], fov: 50 }}
+          camera={{ position: [40, 40, 40], fov: 42 }}
           style={{ width: "100%", height: "100%", background: "#0a0a12" }}
         >
           <ambientLight intensity={0.6} />
