@@ -91,6 +91,9 @@ export default function GaussianSplatting() {
           borderLeft: "1px solid #1e1e2e",
         }}
       >
+        {/* Explanation */}
+        <div style={{ flex: 1, padding: "16px", fontSize: 12, color: "#aaa", lineHeight: 1.6 }}>Explain here</div>
+
         {/* Sliders */}
         <div style={{ padding: "12px 16px", borderTop: "1px solid #1e1e2e" }}>
           <div style={{ fontSize: 11, color: "#aaa", marginBottom: 8 }}>
