@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
+import * as THREE from "three";
 
 // Preconfigured set of 3D Gaussian centres
 function generateGaussians(count = 200): Float32Array {
@@ -16,6 +17,16 @@ function generateGaussians(count = 200): Float32Array {
 export default function GaussianSplatting() {
   const positions = useMemo(() => generateGaussians(), []);
 
+  // Camera object
+  const sceneCamera = useMemo(() => {
+    const cam = new THREE.PerspectiveCamera(50, 1.6, 1, 40);
+    cam.position.set(0, 0, -15);
+    cam.lookAt(0, 0, 0);
+    cam.updateProjectionMatrix();
+    cam.updateMatrixWorld(true);
+    return cam;
+  }, []);
+
   return (
     <div style={{ width: "100%", height: "100%" }}>
       <Canvas
@@ -30,6 +41,8 @@ export default function GaussianSplatting() {
           </bufferGeometry>
           <pointsMaterial size={0.3} sizeAttenuation color="#6dd49f" />
         </points>
+        <primitive object={sceneCamera} />
+        <cameraHelper args={[sceneCamera]} />
         <OrbitControls makeDefault />
       </Canvas>
     </div>
