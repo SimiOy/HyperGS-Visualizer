@@ -125,6 +125,19 @@ export default function LatentSpace() {
           borderLeft: "1px solid #1e1e2e",
         }}
       >
+        {/* Explanation */}
+        <div style={{ flex: 1, padding: "16px", fontSize: 12, color: "#aaa", lineHeight: 1.6 }}>
+          The slider picks one of the {nBands} spectral wavelengths. Each point is coloured by how bright that pixel was
+          at the selected wavelength. The values are clipped to the 2nd-98th percentile so a few outliers don't squeeze
+          the visuals.
+          <br />
+          <br />
+          Moving the slider re-colours the same t-SNE layout. Watch whether clusters split apart or merge as you scan
+          through wavelengths, which reveals whether those clusters differ at that particular wavelength. Check out the
+          bright red points that appear at band 60 - the same plume intense values we saw on the first screen.
+        </div>
+
+        {/* Slider */}
         <div style={{ padding: "12px 16px", borderTop: "1px solid #1e1e2e" }}>
           <div style={{ fontSize: 11, color: "#aaa", marginBottom: 8 }}>
             Spectral band &nbsp;

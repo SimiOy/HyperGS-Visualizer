@@ -3,6 +3,10 @@ import HyperspectralCube from "./screens/HyperspectralCube";
 import LatentSpace from "./screens/LatentSpace";
 
 const SCREENS = [HyperspectralCube, LatentSpace];
+const SCREEN_SUBTITLES = [
+  "Hyperspectral data cube",
+  "AE/VAE embeddings projected with t-SNE",
+];
 
 const navBtn: CSSProperties = {
   padding: "6px 14px",
@@ -41,7 +45,7 @@ export default function App() {
         <div>
           <span style={{ fontWeight: 600, letterSpacing: 1 }}>HyperGS Visualizer</span>
           <span style={{ marginLeft: 16, fontSize: 12, color: "#888" }}>
-            HyperGS: Hyperspectral 3D Gaussian Splatting
+            {SCREEN_SUBTITLES[screen]}
           </span>
         </div>
         <div>

@@ -14,7 +14,7 @@ from .data import (
     spectra_indices,
 )
 
-app = FastAPI(title="HyperGS Visualizer API")
+app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
