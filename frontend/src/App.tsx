@@ -1,11 +1,13 @@
 import { useState, type CSSProperties } from "react";
 import HyperspectralCube from "./screens/HyperspectralCube";
 import LatentSpace from "./screens/LatentSpace";
+import GaussianSplatting from "./screens/GaussianSplatting";
 
-const SCREENS = [HyperspectralCube, LatentSpace];
+const SCREENS = [HyperspectralCube, LatentSpace, GaussianSplatting];
 const SCREEN_SUBTITLES = [
   "Hyperspectral data cube",
   "AE/VAE embeddings projected with t-SNE",
+  "Adapative Densification",
 ];
 
 const navBtn: CSSProperties = {
