@@ -65,12 +65,17 @@ def load_data(glob="MakoSpectrometer-*.img.hdr"):
         batch_size=512,
         shuffle=True,
     )
+    train_eval_loader = DataLoader(
+        TensorDataset(torch.tensor(pixels_train)),
+        batch_size=512,
+        shuffle=False,
+    )
     test_loader = DataLoader(
         TensorDataset(torch.tensor(pixels_test)),
         batch_size=512,
         shuffle=False,
     )
-    return train_loader, test_loader
+    return pixels_train, pixels_test, train_loader, train_eval_loader, test_loader
 
 
 def train_model_ae(model: SpectralAE, train_loader, test_loader, epochs=50):
@@ -119,18 +124,21 @@ def train_model_vae(model: SpectralVAE, train_loader, test_loader, epochs=50):
 
 def fit_tsne(latents):
     rng = np.random.default_rng(0)
+    idx = np.arange(len(latents))
     if len(latents) > MAX_PIXELS_TSNE:
         idx = rng.choice(len(latents), MAX_PIXELS_TSNE, replace=False)
-        latents = latents[idx]
     tsne = TSNE(n_components=3, random_state=0, perplexity=30)
-    return tsne.fit_transform(latents).astype(np.float32)
+    coords = tsne.fit_transform(latents[idx]).astype(np.float32)
+    return coords, idx
 
 
 if __name__ == "__main__":
     print(f"Using device: {DEVICE}")
     MODELS.mkdir(parents=True, exist_ok=True)
 
-    train_loader, test_loader = load_data()
+    pixels_train, pixels_test, train_loader, train_eval_loader, test_loader = (
+        load_data()
+    )
     model_ae = SpectralAE(n_bands=128, latent_dim=32).to(DEVICE)
     model_vae = SpectralVAE(n_bands=128, latent_dim=32, beta=0.5).to(DEVICE)
 
@@ -153,12 +161,20 @@ if __name__ == "__main__":
         print(f"saved {vae_path}")
 
     models = {"ae": (model_ae, False), "vae": (model_vae, True)}
-    splits = {"train": train_loader, "test": test_loader}
+    splits = {
+        "train": (train_eval_loader, pixels_train),
+        "test": (test_loader, pixels_test),
+    }
 
     for model_name, (model, is_vae) in models.items():
-        for split_name, loader in splits.items():
+        for split_name, (loader, pixels) in splits.items():
             latents = encode_all(model, loader, is_vae, device=DEVICE)
-            coords = fit_tsne(latents)
+            coords, idx = fit_tsne(latents)
             out_path = MODELS / f"tsne_{model_name}_{split_name}.npy"
             np.save(out_path, coords)
             print(f"saved {out_path}  {coords.shape}")
+
+            spectra_path = MODELS / f"spectra_{split_name}.npy"
+            if not spectra_path.exists():
+                np.save(spectra_path, pixels[idx])
+                print(f"saved {spectra_path}  {pixels[idx].shape}")
