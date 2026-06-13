@@ -16,9 +16,9 @@ function generateGaussians(count = 200): Gaussian3D[] {
       (Math.random() - 0.5) * 20,
       (Math.random() - 0.5) * 20,
     );
-    gaussians.push(
-      new Gaussian3D(position, new THREE.Vector3(1, 1, 1), new THREE.Matrix3().identity(), new THREE.Color("#6dd49f")),
-    );
+    const scale = new THREE.Vector3(0.5 + Math.random() * 1.5, 0.5 + Math.random() * 1.5, 0.5 + Math.random() * 1.5);
+    const rotation = new THREE.Quaternion().random();
+    gaussians.push(new Gaussian3D(position, scale, new THREE.Color("#6dd49f"), 1, rotation));
   }
   return gaussians;
 }
@@ -30,7 +30,7 @@ export default function GaussianSplatting() {
   const [far, setFar] = useState(40);
   const [theta, setTheta] = useState(50);
   const [radius, setRadius] = useState(15);
-  const [beta, setBeta] = useState(1);
+  const [beta, setBeta] = useState(1.7);
 
   // Camera object
   const sceneCamera = useMemo(() => {
@@ -56,7 +56,7 @@ export default function GaussianSplatting() {
       // eq. 16: h(d,i)
       const depth = sceneCamera.position.distanceTo(g.position);
       const h = (depth / (beta * SCENE_RADIUS)) ** 2;
-      g.scale.setScalar(h);
+      g.scale.copy(g.baseScale).multiplyScalar(h);
 
       if (frustum.containsPoint(g.position)) {
         g.opacity = 1;
