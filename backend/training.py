@@ -180,7 +180,9 @@ if __name__ == "__main__":
                 print(f"saved {spectra_path}  {pixels[idx].shape}")
 
             with torch.no_grad():
-                recon = model.decode(torch.tensor(latents[idx]).to(DEVICE)).cpu().numpy()
+                recon = (
+                    model.decode(torch.tensor(latents[idx]).to(DEVICE)).cpu().numpy()
+                )
             recon_path = MODELS / f"recon_{model_name}_{split_name}.npy"
             np.save(recon_path, recon)
             print(f"saved {recon_path}  {recon.shape}")
