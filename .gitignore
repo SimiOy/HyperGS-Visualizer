@@ -1,6 +1,5 @@
 *.zip
 data/
-models/
 .vscode
 
 # Python
