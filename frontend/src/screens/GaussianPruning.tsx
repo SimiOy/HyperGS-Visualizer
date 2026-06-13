@@ -4,6 +4,7 @@ import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 import { Gaussian3D } from "../Gaussian3D";
 import GaussianInstances from "../components/GaussianInstances";
+import SpectralPlot from "../components/SpectralPlot";
 
 // Preconfigured set of 3D Gaussians
 function generateGaussians(count = 200): Gaussian3D[] {
@@ -21,8 +22,21 @@ function generateGaussians(count = 200): Gaussian3D[] {
   return gaussians;
 }
 
+// mock per-Gaussian importance score, eq. 17:
+function computeImportance(gaussians: Gaussian3D[]): number[] {
+  return gaussians.map((g) => {
+    const matchQuality = 1 - Math.abs(Math.random() - Math.random()); // (1 - |C* - Dec|) mock
+    return matchQuality * g.opacity; // alpha_i * T_i mock
+  });
+}
+
 export default function GaussianPruning() {
   const gaussians = useMemo(() => generateGaussians(), []);
+
+  // sorted descending to mirror eq.18's per-pixel ranking
+  const sortedImportance = useMemo(() => computeImportance(gaussians).sort((a, b) => b - a), [gaussians]);
+  const ranks = useMemo(() => sortedImportance.map((_, i) => i), [sortedImportance]);
+
   const [fov, setFov] = useState(50);
   const [near, setNear] = useState(1);
   const [far, setFar] = useState(40);
@@ -69,6 +83,17 @@ export default function GaussianPruning() {
       >
         {/* Explanation */}
         <div style={{ flex: 1, padding: "16px", fontSize: 12, color: "#aaa", lineHeight: 1.6 }}>Explain Here</div>
+
+        {/* Importance score distribution */}
+        <div style={{ borderTop: "1px solid #1e1e2e" }}>
+          <SpectralPlot
+            wavelengths={ranks}
+            spectrum={sortedImportance}
+            color="#6dd49f"
+            title="Importance score (sorted)"
+            xLabel="rank"
+          />
+        </div>
 
         {/* Sliders */}
         <div style={{ padding: "12px 16px", borderTop: "1px solid #1e1e2e" }}>
