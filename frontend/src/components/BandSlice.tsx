@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 
 interface Props {
-  bandData: Float32Array | null; // 128×128
+  bandData: Float32Array | null; // 128x128
   highlightColor: string;
 }
 

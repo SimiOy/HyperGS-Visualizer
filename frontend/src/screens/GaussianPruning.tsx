@@ -10,6 +10,7 @@ const API = "/api";
 const MODEL = "ae";
 const SPLIT = "train";
 
+const N_GAUSSIANS = 200;
 const N_VIEWS = 4;
 const N_PIXELS = 8;
 const N_SLICES = N_VIEWS * N_PIXELS; // (p,d) slices
@@ -20,7 +21,7 @@ interface Meta {
 }
 
 // Preconfigured set of 3D Gaussians
-function generateGaussians(count = 200): Gaussian3D[] {
+function generateGaussians(count = N_GAUSSIANS): Gaussian3D[] {
   const gaussians: Gaussian3D[] = [];
   for (let i = 0; i < count; i++) {
     const position = new THREE.Vector3(
@@ -30,7 +31,9 @@ function generateGaussians(count = 200): Gaussian3D[] {
     );
     const scale = new THREE.Vector3(0.5 + Math.random() * 1.5, 0.5 + Math.random() * 1.5, 0.5 + Math.random() * 1.5);
     const rotation = new THREE.Quaternion().random();
-    gaussians.push(new Gaussian3D(position, scale, new THREE.Color("#6dd49f"), 1, rotation));
+    const g = new Gaussian3D(position, scale, new THREE.Color("#6dd49f"), 1, rotation);
+    g.id = i;
+    gaussians.push(g);
   }
   return gaussians;
 }
@@ -146,10 +149,8 @@ export default function GaussianPruning() {
     gaussians.forEach((g, i) => {
       if (i === gIdx) {
         g.color = new THREE.Color("red");
-        g.scale.copy(g.baseScale).multiplyScalar(3.5);
       } else {
         g.color = new THREE.Color("#6dd49f");
-        g.scale.copy(g.baseScale);
       }
     });
     if (!importanceTensor) {
@@ -184,10 +185,24 @@ export default function GaussianPruning() {
       >
         <ambientLight intensity={0.6} />
         <directionalLight position={[5, 5, 5]} intensity={1.0} />
-        <GaussianInstances gaussians={keptGaussians} />
-        <GaussianInstances gaussians={prunedGaussians} />
+        <GaussianInstances gaussians={keptGaussians} onSelect={setGIdx} />
+        <GaussianInstances gaussians={prunedGaussians} onSelect={setGIdx} />
         <OrbitControls makeDefault />
       </Canvas>
+
+      <div
+        style={{
+          position: "absolute",
+          bottom: 14,
+          left: "50%",
+          transform: "translateX(-50%)",
+          fontSize: 11,
+          color: "#555",
+          pointerEvents: "none",
+        }}
+      >
+        click a Gaussian in the scene to inspect
+      </div>
 
       {/* Right - camera setting sliders */}
       <div

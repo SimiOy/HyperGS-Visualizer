@@ -1,8 +1,14 @@
 import { useRef, useEffect } from "react";
+import { type ThreeEvent } from "@react-three/fiber";
 import * as THREE from "three";
 import { Gaussian3D } from "../Gaussian3D";
 
-export default function GaussianInstances({ gaussians }: { gaussians: Gaussian3D[] }) {
+interface Props {
+  gaussians: Gaussian3D[];
+  onSelect?: (id: number) => void;
+}
+
+export default function GaussianInstances({ gaussians, onSelect }: Props) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
 
   useEffect(() => {
@@ -21,8 +27,14 @@ export default function GaussianInstances({ gaussians }: { gaussians: Gaussian3D
 
   const opacity = gaussians[0].opacity;
 
+  function handleClick(e: ThreeEvent<MouseEvent>) {
+    e.stopPropagation();
+    if (e.instanceId === undefined) return;
+    onSelect?.(gaussians[e.instanceId].id);
+  }
+
   return (
-    <instancedMesh ref={meshRef} args={[undefined, undefined, gaussians.length]}>
+    <instancedMesh ref={meshRef} args={[undefined, undefined, gaussians.length]} onClick={handleClick}>
       <sphereGeometry args={[0.3, 12, 12]} />
       <meshStandardMaterial transparent={opacity < 1} opacity={opacity} />
     </instancedMesh>

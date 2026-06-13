@@ -8,6 +8,7 @@ export class Gaussian3D {
   color: THREE.Color;
   opacity: number;
   baseOpacity: number;
+  id: number = 0;
 
   constructor(
     position: THREE.Vector3,
