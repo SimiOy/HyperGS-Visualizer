@@ -86,6 +86,9 @@ export default function GaussianPruning() {
   const [meta, setMeta] = useState<Meta | null>(null);
   const [recon, setRecon] = useState<Float32Array | null>(null);
   const [groundTruth, setGroundTruth] = useState<Float32Array | null>(null);
+  const [sampleVersion, setSampleVersion] = useState(0);
+  const [gIdx, setGIdx] = useState(0);
+  const [sIdx, setSIdx] = useState(0);
 
   useEffect(() => {
     fetch(`${API}/meta`)
@@ -129,6 +132,15 @@ export default function GaussianPruning() {
 
   // eq. 18: union of per-slice top-K survivors
   const { keptGaussians, prunedGaussians, survivalSorted } = useMemo(() => {
+    gaussians.forEach((g, i) => {
+      if (i === gIdx) {
+        g.color = new THREE.Color("red");
+        g.scale.copy(g.baseScale).multiplyScalar(3.5);
+      } else {
+        g.color = new THREE.Color("#6dd49f");
+        g.scale.copy(g.baseScale);
+      }
+    });
     if (!importanceTensor) {
       return { keptGaussians: gaussians, prunedGaussians: [] as Gaussian3D[], survivalSorted: [] as number[] };
     }
@@ -149,7 +161,7 @@ export default function GaussianPruning() {
       prunedGaussians: pruned,
       survivalSorted: [...survivalCounts].sort((a, b) => b - a), // descending
     };
-  }, [gaussians, importanceTensor, topK]);
+  }, [gaussians, importanceTensor, topK, gIdx]);
 
   const ranks = useMemo(() => survivalSorted.map((_, i) => i), [survivalSorted]);
 
@@ -191,6 +203,52 @@ export default function GaussianPruning() {
             title={`Surviving (p,d) slices per Gaussian (sorted): ${keptGaussians.length}/${gaussians.length} kept`}
             xLabel="rank"
           />
+        </div>
+
+        {/* g_idx and s_idx sliders */}
+        <div style={{ padding: "8px 16px", borderTop: "1px solid #1e1e2e" }}>
+          <div style={{ fontSize: 11, color: "#aaa", marginBottom: 8 }}>
+            Gaussian index (gi) &nbsp;
+            <span style={{ color: "#6dd49f", fontWeight: 600 }}>{gIdx}</span>
+          </div>
+          <input
+            type="range"
+            min={0}
+            max={gaussians.length - 1}
+            step={1}
+            value={gIdx}
+            onChange={(e) => setGIdx(Number(e.target.value))}
+            style={{ width: "100%", accentColor: "#6dd49f" }}
+          />
+          <div style={{ fontSize: 11, color: "#aaa", margin: "8px 0" }}>
+            Slice index (p,d) &nbsp;
+            <span style={{ color: "#e07a5f", fontWeight: 600 }}>{sIdx}</span>
+          </div>
+          <input
+            type="range"
+            min={0}
+            max={N_SLICES - 1}
+            step={1}
+            value={sIdx}
+            onChange={(e) => setSIdx(Number(e.target.value))}
+            style={{ width: "100%", accentColor: "#e07a5f" }}
+          />
+          <div style={{ marginTop: 10 }}>
+            <button
+              onClick={() => setSampleVersion((v) => v + 1)}
+              style={{
+                padding: "6px 14px",
+                fontSize: 12,
+                color: "#ddd",
+                background: "#1e1e2e",
+                border: "1px solid #2a2a3a",
+                borderRadius: 4,
+                cursor: "pointer",
+              }}
+            >
+              Resample
+            </button>
+          </div>
         </div>
 
         {/* Sliders */}
