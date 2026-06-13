@@ -1,10 +1,14 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 import { Gaussian3D } from "../Gaussian3D";
 import GaussianInstances from "../components/GaussianInstances";
 import SpectralPlot from "../components/SpectralPlot";
+
+const API = "/api";
+const MODEL = "ae";
+const SPLIT = "train";
 
 // Preconfigured set of 3D Gaussians
 function generateGaussians(count = 200): Gaussian3D[] {
@@ -22,37 +26,33 @@ function generateGaussians(count = 200): Gaussian3D[] {
   return gaussians;
 }
 
-// mock per-Gaussian importance score, eq. 17:
-function computeImportance(gaussians: Gaussian3D[]): number[] {
-  return gaussians.map((g) => {
-    const matchQuality = 1 - Math.abs(Math.random() - Math.random()); // (1 - |C* - Dec|) mock
-    return matchQuality * g.opacity; // alpha_i * T_i mock
-  });
-}
-
 export default function GaussianPruning() {
   const gaussians = useMemo(() => generateGaussians(), []);
+  const [topK, setTopK] = useState(5);
 
-  // sorted descending to mirror eq.18's per-pixel ranking
-  const sortedImportance = useMemo(() => computeImportance(gaussians).sort((a, b) => b - a), [gaussians]);
-  const ranks = useMemo(() => sortedImportance.map((_, i) => i), [sortedImportance]);
+  const [nBands, setNBands] = useState(128);
+  const [recon, setRecon] = useState<Float32Array | null>(null);
+  const [groundTruth, setGroundTruth] = useState<Float32Array | null>(null);
 
-  const [fov, setFov] = useState(50);
-  const [near, setNear] = useState(1);
-  const [far, setFar] = useState(40);
-  const [theta, setTheta] = useState(50);
-  const [radius, setRadius] = useState(15);
+  useEffect(() => {
+    fetch(`${API}/meta`)
+      .then((r) => r.json())
+      .then((meta) => setNBands(meta.n_bands));
+  }, []);
 
-  // Camera object
-  const sceneCamera = useMemo(() => {
-    const cam = new THREE.PerspectiveCamera(fov, 1.6, near, far);
-    const thetaRad = (theta * Math.PI) / 180;
-    cam.position.set(radius * Math.sin(thetaRad), 0, radius * Math.cos(thetaRad));
-    cam.lookAt(0, 0, 0);
-    cam.updateProjectionMatrix();
-    cam.updateMatrixWorld(true);
-    return cam;
-  }, [fov, near, far, radius, theta]);
+  // Dec(fi)
+  useEffect(() => {
+    fetch(`${API}/reconstruct/${MODEL}/${SPLIT}`)
+      .then((r) => r.arrayBuffer())
+      .then((buf) => setRecon(new Float32Array(buf)));
+  }, []);
+
+  // C*_d(p)
+  useEffect(() => {
+    fetch(`${API}/tsne/spectra/${SPLIT}`)
+      .then((r) => r.arrayBuffer())
+      .then((buf) => setGroundTruth(new Float32Array(buf)));
+  }, []);
 
   return (
     <div style={{ width: "100%", height: "100%", display: "flex" }}>
@@ -63,8 +63,6 @@ export default function GaussianPruning() {
         <ambientLight intensity={0.6} />
         <directionalLight position={[5, 5, 5]} intensity={1.0} />
         <GaussianInstances gaussians={gaussians} />
-        <primitive object={sceneCamera} />
-        <cameraHelper args={[sceneCamera]} />
         <OrbitControls makeDefault />
       </Canvas>
 
@@ -84,99 +82,24 @@ export default function GaussianPruning() {
         {/* Explanation */}
         <div style={{ flex: 1, padding: "16px", fontSize: 12, color: "#aaa", lineHeight: 1.6 }}>Explain Here</div>
 
-        {/* Importance score distribution */}
-        <div style={{ borderTop: "1px solid #1e1e2e" }}>
-          <SpectralPlot
-            wavelengths={ranks}
-            spectrum={sortedImportance}
-            color="#6dd49f"
-            title="Importance score (sorted)"
-            xLabel="rank"
-          />
-        </div>
-
         {/* Sliders */}
         <div style={{ padding: "12px 16px", borderTop: "1px solid #1e1e2e" }}>
           <div style={{ fontSize: 11, color: "#aaa", marginBottom: 8 }}>
-            Camera FOV &nbsp;
-            <span style={{ color: "#4caf50", fontWeight: 600 }}>{fov}</span>
+            Top-K per slice (τ) &nbsp;
+            <span style={{ color: "#e07a5f", fontWeight: 600 }}>{topK}</span>
           </div>
           <input
             type="range"
-            min={20}
-            max={100}
-            step={1}
-            value={fov}
-            onChange={(e) => setFov(Number(e.target.value))}
-            style={{ width: "100%", accentColor: "#4caf50" }}
-          />
-        </div>
-
-        <div style={{ padding: "12px 16px", borderTop: "1px solid #1e1e2e" }}>
-          <div style={{ fontSize: 11, color: "#aaa", marginBottom: 8 }}>
-            Camera Near plane &nbsp;
-            <span style={{ color: "#4caf50", fontWeight: 600 }}>{near}</span>
-          </div>
-          <input
-            type="range"
-            min={0.1}
-            max={1}
-            step={0.1}
-            value={near}
-            onChange={(e) => setNear(Number(e.target.value))}
-            style={{ width: "100%", accentColor: "#4caf50" }}
-          />
-        </div>
-
-        <div style={{ padding: "12px 16px", borderTop: "1px solid #1e1e2e" }}>
-          <div style={{ fontSize: 11, color: "#aaa", marginBottom: 8 }}>
-            Camera Far plane &nbsp;
-            <span style={{ color: "#4caf50", fontWeight: 600 }}>{far}</span>
-          </div>
-          <input
-            type="range"
-            min={10}
-            max={60}
-            step={1}
-            value={far}
-            onChange={(e) => setFar(Number(e.target.value))}
-            style={{ width: "100%", accentColor: "#4caf50" }}
-          />
-        </div>
-        <br></br>
-        <br></br>
-
-        <div style={{ padding: "12px 16px", borderTop: "1px solid #1e1e2e" }}>
-          <div style={{ fontSize: 11, color: "#aaa", marginBottom: 8 }}>
-            Camera Radius &nbsp;
-            <span style={{ color: "#c39c40", fontWeight: 600 }}>{radius}</span>
-          </div>
-          <input
-            type="range"
-            min={5}
+            min={1}
             max={20}
             step={1}
-            value={radius}
-            onChange={(e) => setRadius(Number(e.target.value))}
-            style={{ width: "100%", accentColor: "#c39c40" }}
+            value={topK}
+            onChange={(e) => setTopK(Number(e.target.value))}
+            style={{ width: "100%", accentColor: "#e07a5f" }}
           />
         </div>
-
-        <div style={{ padding: "12px 16px", borderTop: "1px solid #1e1e2e" }}>
-          <div style={{ fontSize: 11, color: "#aaa", marginBottom: 8 }}>
-            Camera Theta &nbsp;
-            <span style={{ color: "#c39c40", fontWeight: 600 }}>{theta}</span>
-          </div>
-          <input
-            type="range"
-            min={0}
-            max={360}
-            step={1}
-            value={theta}
-            onChange={(e) => setTheta(Number(e.target.value))}
-            style={{ width: "100%", accentColor: "#c39c40" }}
-          />
-        </div>
+        <br></br>
+        <br></br>
       </div>
     </div>
   );
