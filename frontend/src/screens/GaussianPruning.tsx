@@ -218,7 +218,32 @@ export default function GaussianPruning() {
         }}
       >
         {/* Explanation */}
-        <div style={{ flex: 1, padding: "16px", fontSize: 12, color: "#aaa", lineHeight: 1.6 }}>Explain Here</div>
+        <div style={{ flex: 1, padding: "16px", fontSize: 12, color: "#aaa", lineHeight: 1.6 }}>
+          For each Gaussian <code>gi</code> and each of the {N_SLICES} ({N_PIXELS} pixels x {N_VIEWS} views) sampled
+          (p,d) pixel/view slices, HyperGS computes an importance score{" "}
+          <code>I[gi,p,d] = (1-|C*_d(p)-Dec(fi)|) * alpha_i * T_i</code> (eq. 17), where <code>Dec(fi)</code> is the
+          AE's decoded spectrum for that Gaussian and <code>C*_d(p)</code> is the ground-truth spectrum for that slice.
+          The higher the importance score, the more relevant that Gaussian is for the Hyperspectral 3D reconstruction
+          and thus higher the chances it is retained.
+          <br />
+          <br />A Gaussian survives (<span style={{ color: "#6dd49f", fontWeight: 600 }}>green</span>) if it ranks in
+          the top-<code>τ</code> for at least one slice (pixel x view combination), otherwise it is pruned (eq. 18).
+          Click any Gaussian to inspect it: it turns <span style={{ color: "red", fontWeight: 600 }}>red</span> and its{" "}
+          <code>Dec(f_gi)</code> spectrum is plotted below.
+          <br />
+          <br />
+          Use the <span style={{ color: "#e07a5f", fontWeight: 600 }}>slice index</span> slider to pick which slice's
+          ground-truth spectrum <code>C*_d(p)</code> to compare against - the closer the two curves, the higher the{" "}
+          <code>importance score</code> for that slice. The{" "}
+          <span style={{ color: "#c39c40", fontWeight: 600 }}>Top-K (τ)</span> slider sets the pruning threshold. The
+          plot above shows the eq. 18 survival count (i.e for how many slices was this Gaussian in the Top-K rank) for
+          each Gaussian, sorted from highest to lowest.
+          <br />
+          <br />
+          <span style={{ fontWeight: 600 }}>Resample</span> re-rolls which pixels' spectra and reconstructions are used
+          for each of the {N_GAUSSIANS} Gaussians and {N_SLICES} slices from the already pre-processed hyperspectral
+          dataset.
+        </div>
 
         {/* Survival count distribution */}
         <div style={{ borderTop: "1px solid #1e1e2e" }}>
@@ -226,8 +251,8 @@ export default function GaussianPruning() {
             wavelengths={ranks}
             spectrum={survivalSorted}
             color="#c39c40"
-            title={`Surviving (p,d) slices per Gaussian (sorted): ${keptGaussians.length}/${gaussians.length} kept`}
-            xLabel="rank"
+            title={`Survival count per Gaussian (sorted): ${keptGaussians.length}/${gaussians.length} kept`}
+            xLabel="gaussian sorted idx"
           />
         </div>
 
@@ -241,26 +266,19 @@ export default function GaussianPruning() {
             color2="#e07a5f"
             label={`Dec(f_${gIdx})`}
             label2="C*_d(p)"
-            title={`Example matchQuality pair: I[${gIdx},${sIdx}]`}
+            title={`Example importance score pair: I[${gIdx},${sIdx}]`}
           />
         </div>
         <div style={{ padding: "8px 16px", borderTop: "1px solid #1e1e2e" }}>
-          <div style={{ fontSize: 11, color: "#aaa", marginBottom: 8 }}>
-            Gaussian index (gi) &nbsp;
-            <span style={{ color: "#6dd49f", fontWeight: 600 }}>{gIdx}</span>
-          </div>
-          <input
-            type="range"
-            min={0}
-            max={gaussians.length - 1}
-            step={1}
-            value={gIdx}
-            onChange={(e) => setGIdx(Number(e.target.value))}
-            style={{ width: "100%", accentColor: "#6dd49f" }}
-          />
-          <div style={{ fontSize: 11, color: "#aaa", margin: "8px 0" }}>
-            Slice index (p,d) &nbsp;
-            <span style={{ color: "#e07a5f", fontWeight: 600 }}>{sIdx}</span>
+          <div style={{ display: "flex", gap: 24, fontSize: 11, color: "#aaa", marginBottom: 8 }}>
+            <div>
+              Slice index (p,d) &nbsp;
+              <span style={{ color: "#e07a5f", fontWeight: 600 }}>{sIdx}</span>
+            </div>
+            <div>
+              Gaussian index (gi) &nbsp;
+              <span style={{ color: "#6dd49f", fontWeight: 600 }}>{gIdx}</span>
+            </div>
           </div>
           <input
             type="range"

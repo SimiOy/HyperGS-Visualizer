@@ -117,7 +117,7 @@ export default function GaussianSplatting() {
           <br />
           <br />
           <span style={{ color: "#e07a5f", fontWeight: 600 }}>Beta</span> controls eq. 16 from the paper, the
-          depth-scaling function <code>h(d,i) = (depth_i / (beta × R))²</code>, where <code>depth_i</code> is the
+          depth-scaling function <code>h(d,i) = (depth_i / (beta x R))^2</code>, where <code>depth_i</code> is the
           distance from the camera to Gaussian i and <code>R</code> is the scene radius. Play around with the parameter
           and notice how a lower beta exaggerates how much a Gaussian's size grows or shrinks with depth, while a higher
           beta dampens this effect so Gaussians stay closer to a uniform size regardless of depth.
