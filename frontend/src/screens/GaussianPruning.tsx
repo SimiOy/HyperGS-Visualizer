@@ -14,6 +14,11 @@ const N_VIEWS = 4;
 const N_PIXELS = 8;
 const N_SLICES = N_VIEWS * N_PIXELS; // (p,d) slices
 
+interface Meta {
+  n_bands: number;
+  wavelengths: number[];
+}
+
 // Preconfigured set of 3D Gaussians
 function generateGaussians(count = 200): Gaussian3D[] {
   const gaussians: Gaussian3D[] = [];
@@ -78,15 +83,16 @@ export default function GaussianPruning() {
   const gaussians = useMemo(() => generateGaussians(), []);
   const [topK, setTopK] = useState(5);
 
-  const [nBands, setNBands] = useState(128);
+  const [meta, setMeta] = useState<Meta | null>(null);
   const [recon, setRecon] = useState<Float32Array | null>(null);
   const [groundTruth, setGroundTruth] = useState<Float32Array | null>(null);
 
   useEffect(() => {
     fetch(`${API}/meta`)
       .then((r) => r.json())
-      .then((meta) => setNBands(meta.n_bands));
+      .then(setMeta);
   }, []);
+  const nBands = meta?.n_bands ?? 128;
 
   // Dec(fi)
   useEffect(() => {
@@ -182,7 +188,7 @@ export default function GaussianPruning() {
             wavelengths={ranks}
             spectrum={survivalSorted}
             color="#6dd49f"
-            title={`Surviving (p,d) slices per Gaussian (sorted) — ${keptGaussians.length}/${gaussians.length} kept`}
+            title={`Surviving (p,d) slices per Gaussian (sorted): ${keptGaussians.length}/${gaussians.length} kept`}
             xLabel="rank"
           />
         </div>
@@ -196,7 +202,7 @@ export default function GaussianPruning() {
           <input
             type="range"
             min={1}
-            max={100}
+            max={75}
             step={1}
             value={topK}
             onChange={(e) => setTopK(Number(e.target.value))}

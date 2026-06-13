@@ -1,4 +1,4 @@
-import { LineChart, Line, XAxis, YAxis, ReferenceLine, ResponsiveContainer, Tooltip } from "recharts";
+import { LineChart, Line, XAxis, YAxis, ReferenceLine, ResponsiveContainer, Tooltip, Legend } from "recharts";
 
 interface Props {
   wavelengths: number[];
@@ -7,6 +7,10 @@ interface Props {
   highlightBand?: number;
   title?: string;
   xLabel?: string;
+  spectrum2?: number[] | null;
+  color2?: string;
+  label?: string;
+  label2?: string;
 }
 
 export default function SpectralPlot({
@@ -16,11 +20,15 @@ export default function SpectralPlot({
   highlightBand,
   title = "Spectral profile",
   xLabel = "µm",
+  spectrum2,
+  color2,
+  label,
+  label2,
 }: Props) {
   const data = [];
   if (spectrum) {
     for (let i = 0; i < spectrum.length; i++) {
-      data.push({ wl: wavelengths[i], v: spectrum[i] });
+      data.push({ wl: wavelengths[i], v: spectrum[i], v2: spectrum2 ? spectrum2[i] : undefined });
     }
   }
 
@@ -93,14 +101,27 @@ export default function SpectralPlot({
                   strokeWidth={1.5}
                 />
               )}
+              {spectrum2 && <Legend wrapperStyle={{ fontSize: 10 }} />}
               <Line
                 type="monotone"
                 dataKey="v"
+                name={label}
                 stroke={color}
                 dot={false}
                 strokeWidth={1.5}
                 isAnimationActive={false}
               />
+              {spectrum2 && (
+                <Line
+                  type="monotone"
+                  dataKey="v2"
+                  name={label2}
+                  stroke={color2}
+                  dot={false}
+                  strokeWidth={1.5}
+                  isAnimationActive={false}
+                />
+              )}
             </LineChart>
           </ResponsiveContainer>
         )}
