@@ -84,8 +84,8 @@ export default function SpectralPlot({
               />
               <YAxis hide />
               <Tooltip
-                formatter={(v: number) => v.toFixed(4)}
-                labelFormatter={(wl: number) => `${wl.toFixed(2)} ${xLabel}`}
+                formatter={(v) => (typeof v === "number" ? v.toFixed(4) : String(v))}
+                labelFormatter={(wl) => (typeof wl === "number" ? `${wl.toFixed(2)} ${xLabel}` : String(wl))}
                 contentStyle={{
                   background: "#1a1a2e",
                   border: "1px solid #333",
