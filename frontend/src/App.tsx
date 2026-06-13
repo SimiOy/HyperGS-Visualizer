@@ -2,12 +2,14 @@ import { useState, type CSSProperties } from "react";
 import HyperspectralCube from "./screens/HyperspectralCube";
 import LatentSpace from "./screens/LatentSpace";
 import GaussianSplatting from "./screens/GaussianSplatting";
+import GaussianPruning from "./screens/GaussianPruning";
 
-const SCREENS = [HyperspectralCube, LatentSpace, GaussianSplatting];
+const SCREENS = [HyperspectralCube, LatentSpace, GaussianSplatting, GaussianPruning];
 const SCREEN_SUBTITLES = [
   "Hyperspectral data cube",
   "AE/VAE embeddings projected with t-SNE",
   "Adapative Densification",
+  "Importance Score Pruning",
 ];
 
 const navBtn: CSSProperties = {
@@ -46,9 +48,7 @@ export default function App() {
       >
         <div>
           <span style={{ fontWeight: 600, letterSpacing: 1 }}>HyperGS Visualizer</span>
-          <span style={{ marginLeft: 16, fontSize: 12, color: "#888" }}>
-            {SCREEN_SUBTITLES[screen]}
-          </span>
+          <span style={{ marginLeft: 16, fontSize: 12, color: "#888" }}>{SCREEN_SUBTITLES[screen]}</span>
         </div>
         <div>
           <button
