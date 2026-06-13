@@ -5,9 +5,18 @@ interface Props {
   spectrum: number[] | null;
   color: string;
   highlightBand?: number;
+  title?: string;
+  xLabel?: string;
 }
 
-export default function SpectralPlot({ wavelengths, spectrum, color, highlightBand }: Props) {
+export default function SpectralPlot({
+  wavelengths,
+  spectrum,
+  color,
+  highlightBand,
+  title = "Spectral profile",
+  xLabel = "µm",
+}: Props) {
   const data = [];
   if (spectrum) {
     for (let i = 0; i < spectrum.length; i++) {
@@ -33,7 +42,7 @@ export default function SpectralPlot({ wavelengths, spectrum, color, highlightBa
           borderBottom: "1px solid #222",
         }}
       >
-        Spectral profile
+        {title}
       </div>
 
       <div
@@ -58,7 +67,7 @@ export default function SpectralPlot({ wavelengths, spectrum, color, highlightBa
                 tick={{ fill: "#888", fontSize: 9 }}
                 tickLine={false}
                 label={{
-                  value: "µm",
+                  value: xLabel,
                   position: "insideBottomRight",
                   offset: -4,
                   fill: "#555",
