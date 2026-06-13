@@ -5,6 +5,8 @@ import * as THREE from "three";
 import { Gaussian3D } from "../Gaussian3D";
 import GaussianInstances from "../components/GaussianInstances";
 
+const SCENE_RADIUS = 10; // eq.16 R
+
 // Preconfigured set of 3D Gaussians
 function generateGaussians(count = 200): Gaussian3D[] {
   const gaussians: Gaussian3D[] = [];
@@ -28,6 +30,7 @@ export default function GaussianSplatting() {
   const [far, setFar] = useState(40);
   const [theta, setTheta] = useState(50);
   const [radius, setRadius] = useState(15);
+  const [beta, setBeta] = useState(1);
 
   // Camera object
   const sceneCamera = useMemo(() => {
@@ -50,6 +53,11 @@ export default function GaussianSplatting() {
     const inside: Gaussian3D[] = [];
     const outside: Gaussian3D[] = [];
     for (const g of gaussians) {
+      // eq. 16: h(d,i)
+      const depth = sceneCamera.position.distanceTo(g.position);
+      const h = (depth / (beta * SCENE_RADIUS)) ** 2;
+      g.scale.setScalar(h);
+
       if (frustum.containsPoint(g.position)) {
         g.opacity = 1;
         inside.push(g);
@@ -59,7 +67,7 @@ export default function GaussianSplatting() {
       }
     }
     return { insideGaussians: inside, outsideGaussians: outside };
-  }, [gaussians, sceneCamera]);
+  }, [gaussians, sceneCamera, beta]);
 
   return (
     <div style={{ width: "100%", height: "100%", display: "flex" }}>
@@ -79,17 +87,41 @@ export default function GaussianSplatting() {
       {/* Right - camera setting sliders */}
       <div
         style={{
-          width: 360,
+          width: 560,
           minWidth: 300,
           height: "100%",
           background: "#13131a",
           display: "flex",
           flexDirection: "column",
           borderLeft: "1px solid #1e1e2e",
+          overflowY: "auto",
         }}
       >
         {/* Explanation */}
-        <div style={{ flex: 1, padding: "16px", fontSize: 12, color: "#aaa", lineHeight: 1.6 }}>Explain here</div>
+        <div style={{ flex: 1, padding: "16px", fontSize: 12, color: "#aaa", lineHeight: 1.6 }}>
+          HyperGS modifies the adaptive densification processes by scaling the NDC term in eq. 16 by the square of the
+          depth relative to the scene's radius (<code>h(d,i)</code>). This is done because Gaussians closer to the
+          camera viewpoint are more susceptible to higher gradient differences in the NDC term, than Gaussians further
+          away. This is visualized by scaling each 3D Gaussian's size in the scene proportional to this{" "}
+          <code>h(d,i)</code> term.
+          <br />
+          <br />
+          The <span style={{ color: "#4caf50", fontWeight: 600 }}>camera params</span> (FOV, Near plane, Far plane)
+          define the camera's projection frustum (shown as a wireframe frustum). Gaussians falling outside this frustum
+          are rendered more transparent to simbolize that they are not visible in the current camera projection.
+          <br />
+          <br />
+          The <span style={{ color: "#c39c40", fontWeight: 600 }}>camera position</span> (Radius, Theta) orbits the
+          camera around the scene origin. You can change theta to modify the camera's position on the circle, or the
+          Radius to modify the orbit's distance from scene origin.
+          <br />
+          <br />
+          <span style={{ color: "#e07a5f", fontWeight: 600 }}>Beta</span> controls eq. 16 from the paper, the
+          depth-scaling function <code>h(d,i) = (depth_i / (beta · R))²</code>, where <code>depth_i</code> is the
+          distance from the camera to Gaussian i and <code>R</code> is the scene radius. Play around with the parameter
+          and notice how a lower beta exaggerates how much a Gaussian's size grows or shrinks with depth, while a higher
+          beta dampens this effect so Gaussians stay closer to a uniform size regardless of depth.
+        </div>
 
         {/* Sliders */}
         <div style={{ padding: "12px 16px", borderTop: "1px solid #1e1e2e" }}>
@@ -171,6 +203,24 @@ export default function GaussianSplatting() {
             value={theta}
             onChange={(e) => setTheta(Number(e.target.value))}
             style={{ width: "100%", accentColor: "#c39c40" }}
+          />
+        </div>
+        <br></br>
+        <br></br>
+
+        <div style={{ padding: "12px 16px", borderTop: "1px solid #1e1e2e" }}>
+          <div style={{ fontSize: 11, color: "#aaa", marginBottom: 8 }}>
+            Beta (scaling factor) &nbsp;
+            <span style={{ color: "#e07a5f", fontWeight: 600 }}>{beta.toFixed(1)}</span>
+          </div>
+          <input
+            type="range"
+            min={0.5}
+            max={3}
+            step={0.1}
+            value={beta}
+            onChange={(e) => setBeta(Number(e.target.value))}
+            style={{ width: "100%", accentColor: "#e07a5f" }}
           />
         </div>
       </div>
