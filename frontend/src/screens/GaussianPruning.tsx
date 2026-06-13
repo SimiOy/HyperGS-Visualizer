@@ -57,7 +57,7 @@ function computeImportanceTensor(
   return gaussians.map((g, gi) =>
     Array.from({ length: N_SLICES }, (_, s) => {
       const matchQuality = 1 - meanAbsDiff(recon, decIdx[gi], groundTruth, gtIdx[s], nBands); // (1 - |C* - Dec|)
-      return matchQuality * g.baseOpacity * Math.random(); // alpha_i * T_i mock
+      return matchQuality * g.baseOpacity; // alpha_i (T_i omitted)
     }),
   );
 }
@@ -116,19 +116,30 @@ export default function GaussianPruning() {
     if (!recon) return null;
     const n = recon.length / nBands;
     return gaussians.map(() => Math.floor(Math.random() * n));
-  }, [gaussians, recon, nBands]);
+  }, [gaussians, recon, nBands, sampleVersion]);
 
   // for C*_d(p): N_slices x 1
   const gtPixelIdx = useMemo(() => {
     if (!groundTruth) return null;
     const n = groundTruth.length / nBands;
     return Array.from({ length: N_SLICES }, () => Math.floor(Math.random() * n));
-  }, [groundTruth, nBands]);
+  }, [groundTruth, nBands, sampleVersion]);
 
   const importanceTensor = useMemo(() => {
     if (!recon || !groundTruth || !decPixelIdx || !gtPixelIdx) return null;
     return computeImportanceTensor(gaussians, recon, groundTruth, decPixelIdx, gtPixelIdx, nBands);
   }, [gaussians, recon, groundTruth, decPixelIdx, gtPixelIdx, nBands]);
+
+  // importanceTensor[gIdx][sIdx]: Dec(f_gIdx) vs C*_d(p) for slice sIdx
+  const { decExample, gtExample } = useMemo(() => {
+    if (!recon || !groundTruth || !decPixelIdx || !gtPixelIdx) return { decExample: null, gtExample: null };
+    const decOff = decPixelIdx[gIdx] * nBands;
+    const gtOff = gtPixelIdx[sIdx] * nBands;
+    return {
+      decExample: Array.from(recon.subarray(decOff, decOff + nBands)),
+      gtExample: Array.from(groundTruth.subarray(gtOff, gtOff + nBands)),
+    };
+  }, [recon, groundTruth, decPixelIdx, gtPixelIdx, nBands, gIdx, sIdx]);
 
   // eq. 18: union of per-slice top-K survivors
   const { keptGaussians, prunedGaussians, survivalSorted } = useMemo(() => {
@@ -199,13 +210,25 @@ export default function GaussianPruning() {
           <SpectralPlot
             wavelengths={ranks}
             spectrum={survivalSorted}
-            color="#6dd49f"
+            color="#c39c40"
             title={`Surviving (p,d) slices per Gaussian (sorted): ${keptGaussians.length}/${gaussians.length} kept`}
             xLabel="rank"
           />
         </div>
 
-        {/* g_idx and s_idx sliders */}
+        {/* g_idx and s_idx sliders and importance score plot */}
+        <div style={{ borderTop: "1px solid #1e1e2e" }}>
+          <SpectralPlot
+            wavelengths={meta?.wavelengths ?? []}
+            spectrum={decExample}
+            spectrum2={gtExample}
+            color="#6dd49f"
+            color2="#e07a5f"
+            label={`Dec(f_${gIdx})`}
+            label2="C*_d(p)"
+            title={`Example matchQuality pair: I[${gIdx},${sIdx}]`}
+          />
+        </div>
         <div style={{ padding: "8px 16px", borderTop: "1px solid #1e1e2e" }}>
           <div style={{ fontSize: 11, color: "#aaa", marginBottom: 8 }}>
             Gaussian index (gi) &nbsp;
@@ -255,7 +278,7 @@ export default function GaussianPruning() {
         <div style={{ padding: "12px 16px", borderTop: "1px solid #1e1e2e" }}>
           <div style={{ fontSize: 11, color: "#aaa", marginBottom: 8 }}>
             Top-K per slice (τ) &nbsp;
-            <span style={{ color: "#e07a5f", fontWeight: 600 }}>{topK}</span>
+            <span style={{ color: "#c39c40", fontWeight: 600 }}>{topK}</span>
           </div>
           <input
             type="range"
@@ -264,7 +287,7 @@ export default function GaussianPruning() {
             step={1}
             value={topK}
             onChange={(e) => setTopK(Number(e.target.value))}
-            style={{ width: "100%", accentColor: "#e07a5f" }}
+            style={{ width: "100%", accentColor: "#c39c40" }}
           />
         </div>
         <br></br>
