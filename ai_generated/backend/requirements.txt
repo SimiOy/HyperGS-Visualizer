@@ -1,0 +1,8 @@
+# Runtime dependencies for serving backend.main / backend.data.
+# Training/notebook-only deps (torch, scikit-learn, matplotlib, plotly,
+# jupyter, ...) are intentionally omitted - the API only reads pretrained
+# artifacts from models/ and the hyperspectral cube via `spectral`.
+fastapi>=0.136.3
+uvicorn[standard]>=0.49.0
+numpy>=1.26.0
+spectral>=0.24

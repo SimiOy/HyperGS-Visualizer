@@ -45,4 +45,12 @@ python src/app.py
 
 Then open the URL printed in the terminal (http://localhost:7860).
 
-### Docker (soon maybe)
+### Docker
+
+Run from the repo root:
+
+```bash
+docker compose -f ai_generated/docker-compose.yml up --build
+```
+
+Access the app at: http://localhost:5173
