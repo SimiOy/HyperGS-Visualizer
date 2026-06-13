@@ -77,7 +77,7 @@ export default function SpectralPlot({
               <YAxis hide />
               <Tooltip
                 formatter={(v: number) => v.toFixed(4)}
-                labelFormatter={(wl: number) => `${wl.toFixed(2)} µm`}
+                labelFormatter={(wl: number) => `${wl.toFixed(2)} ${xLabel}`}
                 contentStyle={{
                   background: "#1a1a2e",
                   border: "1px solid #333",

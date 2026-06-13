@@ -10,6 +10,10 @@ const API = "/api";
 const MODEL = "ae";
 const SPLIT = "train";
 
+const N_VIEWS = 4;
+const N_PIXELS = 8;
+const N_SLICES = N_VIEWS * N_PIXELS; // (p,d) slices
+
 // Preconfigured set of 3D Gaussians
 function generateGaussians(count = 200): Gaussian3D[] {
   const gaussians: Gaussian3D[] = [];
@@ -24,6 +28,50 @@ function generateGaussians(count = 200): Gaussian3D[] {
     gaussians.push(new Gaussian3D(position, scale, new THREE.Color("#6dd49f"), 1, rotation));
   }
   return gaussians;
+}
+
+function meanAbsDiff(a: Float32Array, aRow: number, b: Float32Array, bRow: number, nBands: number): number {
+  const aOff = aRow * nBands;
+  const bOff = bRow * nBands;
+  let sum = 0;
+  for (let i = 0; i < nBands; i++) {
+    sum += Math.abs(a[aOff + i] - b[bOff + i]);
+  }
+  return sum / nBands;
+}
+
+// I[g_i,p,d], eq. 17
+function computeImportanceTensor(
+  gaussians: Gaussian3D[],
+  recon: Float32Array,
+  groundTruth: Float32Array,
+  decIdx: number[],
+  gtIdx: number[],
+  nBands: number,
+): number[][] {
+  return gaussians.map((g, gi) =>
+    Array.from({ length: N_SLICES }, (_, s) => {
+      const matchQuality = 1 - meanAbsDiff(recon, decIdx[gi], groundTruth, gtIdx[s], nBands); // (1 - |C* - Dec|)
+      return matchQuality * g.opacity * Math.random(); // alpha_i * T_i mock
+    }),
+  );
+}
+
+// eq. 18: gi survives if Rank(gi, I[:,p,d]) < k for any (p,d) slice
+function computeSurvivalCounts(importance: number[][], k: number): number[] {
+  const survivalCounts = new Array(importance.length).fill(0);
+  for (let s = 0; s < N_SLICES; s++) {
+    for (let gi = 0; gi < importance.length; gi++) {
+      let rank = 0;
+      for (let other = 0; other < importance.length; other++) {
+        if (importance[other][s] > importance[gi][s]) rank++;
+      }
+      if (rank < k) {
+        survivalCounts[gi]++;
+      }
+    }
+  }
+  return survivalCounts;
 }
 
 export default function GaussianPruning() {
@@ -45,14 +93,59 @@ export default function GaussianPruning() {
     fetch(`${API}/reconstruct/${MODEL}/${SPLIT}`)
       .then((r) => r.arrayBuffer())
       .then((buf) => setRecon(new Float32Array(buf)));
-  }, []);
+  }, []); // M x 128
 
   // C*_d(p)
   useEffect(() => {
     fetch(`${API}/tsne/spectra/${SPLIT}`)
       .then((r) => r.arrayBuffer())
       .then((buf) => setGroundTruth(new Float32Array(buf)));
-  }, []);
+  }, []); // M x 128
+
+  // for Dec(f_i): 200 x 1
+  const decPixelIdx = useMemo(() => {
+    if (!recon) return null;
+    const n = recon.length / nBands;
+    return gaussians.map(() => Math.floor(Math.random() * n));
+  }, [gaussians, recon, nBands]);
+
+  // for C*_d(p): N_slices x 1
+  const gtPixelIdx = useMemo(() => {
+    if (!groundTruth) return null;
+    const n = groundTruth.length / nBands;
+    return Array.from({ length: N_SLICES }, () => Math.floor(Math.random() * n));
+  }, [groundTruth, nBands]);
+
+  const importanceTensor = useMemo(() => {
+    if (!recon || !groundTruth || !decPixelIdx || !gtPixelIdx) return null;
+    return computeImportanceTensor(gaussians, recon, groundTruth, decPixelIdx, gtPixelIdx, nBands);
+  }, [gaussians, recon, groundTruth, decPixelIdx, gtPixelIdx, nBands]);
+
+  // eq. 18: union of per-slice top-K survivors
+  const { keptGaussians, prunedGaussians, survivalSorted } = useMemo(() => {
+    if (!importanceTensor) {
+      return { keptGaussians: gaussians, prunedGaussians: [] as Gaussian3D[], survivalSorted: [] as number[] };
+    }
+    const survivalCounts = computeSurvivalCounts(importanceTensor, topK);
+    const kept: Gaussian3D[] = [];
+    const pruned: Gaussian3D[] = [];
+    gaussians.forEach((g, i) => {
+      if (survivalCounts[i] > 0) {
+        g.opacity = 1;
+        kept.push(g);
+      } else {
+        g.opacity = 0.15;
+        pruned.push(g);
+      }
+    });
+    return {
+      keptGaussians: kept,
+      prunedGaussians: pruned,
+      survivalSorted: [...survivalCounts].sort((a, b) => b - a), // descending
+    };
+  }, [gaussians, importanceTensor, topK]);
+
+  const ranks = useMemo(() => survivalSorted.map((_, i) => i), [survivalSorted]);
 
   return (
     <div style={{ width: "100%", height: "100%", display: "flex" }}>
@@ -62,7 +155,8 @@ export default function GaussianPruning() {
       >
         <ambientLight intensity={0.6} />
         <directionalLight position={[5, 5, 5]} intensity={1.0} />
-        <GaussianInstances gaussians={gaussians} />
+        <GaussianInstances gaussians={keptGaussians} />
+        <GaussianInstances gaussians={prunedGaussians} />
         <OrbitControls makeDefault />
       </Canvas>
 
@@ -82,6 +176,17 @@ export default function GaussianPruning() {
         {/* Explanation */}
         <div style={{ flex: 1, padding: "16px", fontSize: 12, color: "#aaa", lineHeight: 1.6 }}>Explain Here</div>
 
+        {/* Survival count distribution */}
+        <div style={{ borderTop: "1px solid #1e1e2e" }}>
+          <SpectralPlot
+            wavelengths={ranks}
+            spectrum={survivalSorted}
+            color="#6dd49f"
+            title={`Surviving (p,d) slices per Gaussian (sorted) — ${keptGaussians.length}/${gaussians.length} kept`}
+            xLabel="rank"
+          />
+        </div>
+
         {/* Sliders */}
         <div style={{ padding: "12px 16px", borderTop: "1px solid #1e1e2e" }}>
           <div style={{ fontSize: 11, color: "#aaa", marginBottom: 8 }}>
@@ -91,7 +196,7 @@ export default function GaussianPruning() {
           <input
             type="range"
             min={1}
-            max={20}
+            max={100}
             step={1}
             value={topK}
             onChange={(e) => setTopK(Number(e.target.value))}
