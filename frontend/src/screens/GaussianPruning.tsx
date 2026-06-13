@@ -66,8 +66,12 @@ function computeImportanceTensor(
 }
 
 // eq. 18: gi survives if Rank(gi, I[:,p,d]) < k for any (p,d) slice
-function computeSurvivalCounts(importance: number[][], k: number): number[] {
+function computeSurvivalCounts(importance: number[][], k: number): [number[], Map<number, number>] {
   const survivalCounts = new Array(importance.length).fill(0);
+  const survivalMap: Map<number, number> = new Map();
+  for (let gi = 0; gi < importance.length; gi++) {
+    survivalMap.set(gi, 0);
+  }
   for (let s = 0; s < N_SLICES; s++) {
     for (let gi = 0; gi < importance.length; gi++) {
       let rank = 0;
@@ -76,10 +80,11 @@ function computeSurvivalCounts(importance: number[][], k: number): number[] {
       }
       if (rank < k) {
         survivalCounts[gi]++;
+        survivalMap.set(gi, s);
       }
     }
   }
-  return survivalCounts;
+  return [survivalCounts, survivalMap];
 }
 
 export default function GaussianPruning() {
@@ -145,7 +150,7 @@ export default function GaussianPruning() {
   }, [recon, groundTruth, decPixelIdx, gtPixelIdx, nBands, gIdx, sIdx]);
 
   // eq. 18: union of per-slice top-K survivors
-  const { keptGaussians, prunedGaussians, survivalSorted } = useMemo(() => {
+  const { keptGaussians, prunedGaussians, survivalSorted, survivalMap } = useMemo(() => {
     gaussians.forEach((g, i) => {
       if (i === gIdx) {
         g.color = new THREE.Color("red");
@@ -154,9 +159,14 @@ export default function GaussianPruning() {
       }
     });
     if (!importanceTensor) {
-      return { keptGaussians: gaussians, prunedGaussians: [] as Gaussian3D[], survivalSorted: [] as number[] };
+      return {
+        keptGaussians: gaussians,
+        prunedGaussians: [] as Gaussian3D[],
+        survivalSorted: [] as number[],
+        survivalMap: new Map<number, number>(),
+      };
     }
-    const survivalCounts = computeSurvivalCounts(importanceTensor, topK);
+    const [survivalCounts, survivalMap] = computeSurvivalCounts(importanceTensor, topK);
     const kept: Gaussian3D[] = [];
     const pruned: Gaussian3D[] = [];
     gaussians.forEach((g, i) => {
@@ -172,10 +182,16 @@ export default function GaussianPruning() {
       keptGaussians: kept,
       prunedGaussians: pruned,
       survivalSorted: [...survivalCounts].sort((a, b) => b - a), // descending
+      survivalMap,
     };
   }, [gaussians, importanceTensor, topK, gIdx]);
 
   const ranks = useMemo(() => survivalSorted.map((_, i) => i), [survivalSorted]);
+
+  function handleSelect(id: number) {
+    setGIdx(id);
+    setSIdx(survivalMap.get(id) ?? 0);
+  }
 
   return (
     <div style={{ width: "100%", height: "100%", display: "flex" }}>
@@ -185,8 +201,8 @@ export default function GaussianPruning() {
       >
         <ambientLight intensity={0.6} />
         <directionalLight position={[5, 5, 5]} intensity={1.0} />
-        <GaussianInstances gaussians={keptGaussians} onSelect={setGIdx} />
-        <GaussianInstances gaussians={prunedGaussians} onSelect={setGIdx} />
+        <GaussianInstances gaussians={keptGaussians} onSelect={handleSelect} />
+        <GaussianInstances gaussians={prunedGaussians} onSelect={handleSelect} />
         <OrbitControls makeDefault />
       </Canvas>
 
@@ -229,7 +245,8 @@ export default function GaussianPruning() {
           <br />A Gaussian survives (<span style={{ color: "#6dd49f", fontWeight: 600 }}>green</span>) if it ranks in
           the top-<code>τ</code> for at least one slice (pixel x view combination), otherwise it is pruned (eq. 18).
           Click any Gaussian to inspect it: it turns <span style={{ color: "red", fontWeight: 600 }}>red</span> and its{" "}
-          <code>Dec(f_gi)</code> spectrum is plotted below.
+          <code>Dec(f_gi)</code> spectrum is plotted below, and the slice index jumps to the slice this Gaussian
+          survived for (i.e best hyperspectral reconstruction).
           <br />
           <br />
           Use the <span style={{ color: "#e07a5f", fontWeight: 600 }}>slice index</span> slider to pick which slice's
