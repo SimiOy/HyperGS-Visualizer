@@ -7,6 +7,7 @@ export class Gaussian3D {
   scale: THREE.Vector3;
   color: THREE.Color;
   opacity: number;
+  baseOpacity: number;
 
   constructor(
     position: THREE.Vector3,
@@ -20,6 +21,7 @@ export class Gaussian3D {
     this.baseScale = scale.clone();
     this.scale = scale;
     this.opacity = opacity;
+    this.baseOpacity = opacity;
     this.rotation = rotation;
   }
 

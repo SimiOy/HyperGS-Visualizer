@@ -57,7 +57,7 @@ function computeImportanceTensor(
   return gaussians.map((g, gi) =>
     Array.from({ length: N_SLICES }, (_, s) => {
       const matchQuality = 1 - meanAbsDiff(recon, decIdx[gi], groundTruth, gtIdx[s], nBands); // (1 - |C* - Dec|)
-      return matchQuality * g.opacity * Math.random(); // alpha_i * T_i mock
+      return matchQuality * g.baseOpacity * Math.random(); // alpha_i * T_i mock
     }),
   );
 }
