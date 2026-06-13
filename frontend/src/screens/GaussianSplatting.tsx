@@ -2,20 +2,27 @@ import { useState, useMemo } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
+import { Gaussian3D } from "../Gaussian3D";
+import GaussianInstances from "../components/GaussianInstances";
 
-// Preconfigured set of 3D Gaussian centres
-function generateGaussians(count = 200): Float32Array {
-  const positions = new Float32Array(count * 3);
+// Preconfigured set of 3D Gaussians
+function generateGaussians(count = 200): Gaussian3D[] {
+  const gaussians: Gaussian3D[] = [];
   for (let i = 0; i < count; i++) {
-    positions[i * 3] = (Math.random() - 0.5) * 20;
-    positions[i * 3 + 1] = (Math.random() - 0.5) * 20;
-    positions[i * 3 + 2] = (Math.random() - 0.5) * 20;
+    const position = new THREE.Vector3(
+      (Math.random() - 0.5) * 20,
+      (Math.random() - 0.5) * 20,
+      (Math.random() - 0.5) * 20,
+    );
+    gaussians.push(
+      new Gaussian3D(position, new THREE.Vector3(1, 1, 1), new THREE.Matrix3().identity(), new THREE.Color("#6dd49f")),
+    );
   }
-  return positions;
+  return gaussians;
 }
 
 export default function GaussianSplatting() {
-  const positions = useMemo(() => generateGaussians(), []);
+  const gaussians = useMemo(() => generateGaussians(), []);
   const [fov, setFov] = useState(50);
   const [near, setNear] = useState(1);
   const [far, setFar] = useState(40);
@@ -33,26 +40,26 @@ export default function GaussianSplatting() {
     return cam;
   }, [fov, near, far, radius, theta]);
 
-  // check Gaussians inside and outside frustrum
-  const { insidePositions, outsidePositions } = useMemo(() => {
+  const { insideGaussians, outsideGaussians } = useMemo(() => {
     const projScreenMatrix = new THREE.Matrix4().multiplyMatrices(
       sceneCamera.projectionMatrix, // K (intrinscs)
       sceneCamera.matrixWorldInverse, // E (view matrix)
     ); // P = K @ E
     const frustum = new THREE.Frustum().setFromProjectionMatrix(projScreenMatrix);
 
-    const inside: number[] = [];
-    const outside: number[] = [];
-    const v = new THREE.Vector3();
-    for (let i = 0; i < positions.length; i += 3) {
-      v.set(positions[i], positions[i + 1], positions[i + 2]);
-      (frustum.containsPoint(v) ? inside : outside).push(v.x, v.y, v.z);
+    const inside: Gaussian3D[] = [];
+    const outside: Gaussian3D[] = [];
+    for (const g of gaussians) {
+      if (frustum.containsPoint(g.position)) {
+        g.opacity = 1;
+        inside.push(g);
+      } else {
+        g.opacity = 0.15;
+        outside.push(g);
+      }
     }
-    return {
-      insidePositions: new Float32Array(inside),
-      outsidePositions: new Float32Array(outside),
-    };
-  }, [positions, sceneCamera]);
+    return { insideGaussians: inside, outsideGaussians: outside };
+  }, [gaussians, sceneCamera]);
 
   return (
     <div style={{ width: "100%", height: "100%", display: "flex" }}>
@@ -62,18 +69,8 @@ export default function GaussianSplatting() {
       >
         <ambientLight intensity={0.6} />
         <directionalLight position={[5, 5, 5]} intensity={1.0} />
-        <points>
-          <bufferGeometry>
-            <bufferAttribute attach="attributes-position" args={[insidePositions, 3]} />
-          </bufferGeometry>
-          <pointsMaterial size={0.3} sizeAttenuation color="#6dd49f" />
-        </points>
-        <points>
-          <bufferGeometry>
-            <bufferAttribute attach="attributes-position" args={[outsidePositions, 3]} />
-          </bufferGeometry>
-          <pointsMaterial size={0.3} sizeAttenuation color="#6dd49f" transparent opacity={0.15} />
-        </points>
+        <GaussianInstances gaussians={insideGaussians} />
+        <GaussianInstances gaussians={outsideGaussians} />
         <primitive object={sceneCamera} />
         <cameraHelper args={[sceneCamera]} />
         <OrbitControls makeDefault />
