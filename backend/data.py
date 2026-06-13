@@ -52,3 +52,9 @@ def tsne_coords(model: str, split: str) -> np.ndarray:
 def spectra_indices(split: str) -> np.ndarray:
     path = MODELS_DIR / f"spectra_{split}.npy"
     return np.load(path).astype(np.float32)
+
+
+@lru_cache(maxsize=8)
+def reconstruction(model: str, split: str) -> np.ndarray:
+    path = MODELS_DIR / f"recon_{model}_{split}.npy"
+    return np.load(path).astype(np.float32)

@@ -8,6 +8,7 @@ from fastapi.responses import Response
 from .data import (
     band_image,
     n_frames,
+    reconstruction,
     spectrum,
     tsne_coords,
     wavelengths,
@@ -65,4 +66,13 @@ def get_tsne(model: str, split: str):
         arr = tsne_coords(model, split)
     except FileNotFoundError:
         raise HTTPException(404, f"no t-SNE results for {model}/{split}")
+    return Response(content=arr.tobytes(), media_type="application/octet-stream")
+
+
+@app.get("/reconstruct/{model}/{split}")
+def get_reconstruction(model: str, split: str):
+    try:
+        arr = reconstruction(model, split)
+    except FileNotFoundError:
+        raise HTTPException(404, f"no reconstruction for {model}/{split}")
     return Response(content=arr.tobytes(), media_type="application/octet-stream")
