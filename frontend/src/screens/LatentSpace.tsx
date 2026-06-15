@@ -127,6 +127,15 @@ export default function LatentSpace() {
       >
         {/* Explanation */}
         <div style={{ flex: 1, padding: "16px", fontSize: 12, color: "#aaa", lineHeight: 1.6 }}>
+          We can compress the collection of high dimensional hyperspectral data cube images from a scene, using a
+          (Variational) Auto-Encoder, and visualize the latent bottlneck dimension using t-SNE. In this case, we
+          compressed the 128-dim hyperspectral bands to 32-dim, and visualize using 3-dim t-SNE. You can check out the
+          differences between the Auto-Encoder (AE) and the Variational Auto-Encoder (VAE) and the two different splits
+          (train vs test) by clicking through the buttons at the top left of the screen. Why does the VAE perform worse,
+          in terms of clustering, than the AE did? Do you notice any differences between the train and test split
+          clustered embeddings?
+          <br />
+          <br />
           The slider picks one of the {nBands} spectral wavelengths. Each point is coloured by how bright that pixel was
           at the selected wavelength. The values are clipped to the 2nd-98th percentile so a few outliers don't squeeze
           the visuals.
@@ -134,7 +143,8 @@ export default function LatentSpace() {
           <br />
           Moving the slider re-colours the same t-SNE layout. Watch whether clusters split apart or merge as you scan
           through wavelengths, which reveals whether those clusters differ at that particular wavelength. Check out the
-          bright red points that appear at band 60 - the same plume intense values we saw on the first screen.
+          bright red points that appear at band 60 - the same plume intense values we saw on the first screen. Can you
+          find these in the t-SNE embeddings?
         </div>
 
         {/* Slider */}

@@ -9,6 +9,8 @@ const COL_COLOR = "#ff6b35";
 
 interface Meta {
   n_bands: number;
+  height: number;
+  width: number;
   wavelengths: number[];
 }
 
@@ -61,12 +63,14 @@ export default function HyperspectralCube() {
     <div style={{ width: "100%", height: "100%", display: "flex" }}>
       {/* Left - spectral curve */}
       <div style={{ ...panel, borderRight: "1px solid #1e1e2e" }}>
-        <SpectralPlot
-          wavelengths={meta?.wavelengths ?? []}
-          spectrum={spectrum}
-          color={COL_COLOR}
-          highlightBand={sliderBand}
-        />
+        <div style={{ flex: 1, minHeight: 0 }}>
+          <SpectralPlot
+            wavelengths={meta?.wavelengths ?? []}
+            spectrum={spectrum}
+            color={COL_COLOR}
+            highlightBand={sliderBand}
+          />
+        </div>
         {selectedPixel && (
           <div
             style={{
@@ -107,7 +111,30 @@ export default function HyperspectralCube() {
 
       {/* Right - band slice + slider */}
       <div style={{ ...panel, borderLeft: "1px solid #1e1e2e" }}>
-        <BandSlice bandData={sliderBandData} highlightColor={COL_COLOR} />
+        {/* Explanation */}
+        <div
+          style={{ padding: "16px", fontSize: 12, color: "#aaa", lineHeight: 1.6, borderBottom: "1px solid #1e1e2e" }}
+        >
+          A hyperspectral image is a stack of {meta?.n_bands ?? 128} spectral bands (wavelengths) with{" "}
+          {meta?.height ?? 128}x{meta?.width ?? 128} images. We call this a data cube, visualized in the centre, it
+          renders this stack in 3D, with band {CUBE_BAND} shown on the front face.
+          <br />
+          <br />
+          Click a pixel on the cube's face to plot its{" "}
+          <span style={{ color: COL_COLOR, fontWeight: 600 }}>spectral curve</span> (intensity per wavelength) on the
+          left, and drag to orbit the cube.
+          <br />
+          <br />
+          Use the slider below to scan through bands - the slice preview updates to that band's image, and a{" "}
+          <span style={{ color: "#4caf50", fontWeight: 600 }}>green dashed line</span> on the spectral plot marks the
+          selected wavelength. Try to find the band which gives the sharpest contrast between the emmisive plume and the
+          rest of the pixels. Click around the neighboring pixels of the emissive fume to check how their hyperspectral
+          signature varies with distance.
+        </div>
+
+        <div style={{ flex: 1, minHeight: 0 }}>
+          <BandSlice bandData={sliderBandData} highlightColor={COL_COLOR} />
+        </div>
 
         {/* Slider */}
         <div style={{ padding: "12px 16px", borderTop: "1px solid #1e1e2e" }}>

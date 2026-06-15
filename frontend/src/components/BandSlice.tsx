@@ -43,17 +43,6 @@ export default function BandSlice({ bandData, highlightColor }: Props) {
   // Gen AI Assisted
   return (
     <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column" }}>
-      <div
-        style={{
-          padding: "8px 12px",
-          fontSize: 11,
-          color: "#aaa",
-          borderBottom: "1px solid #222",
-        }}
-      >
-        Single-band greyscale slice
-      </div>
-
       <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 12 }}>
         <canvas
           ref={canvasRef}

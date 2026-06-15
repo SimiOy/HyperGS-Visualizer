@@ -4,6 +4,18 @@ Educational visualizer for [HyperGS: Hyperspectral 3D Gaussian Splatting](https:
 
 ## Setup
 
+### Easiest is via _Docker_
+
+Run from the repo root:
+
+```bash
+docker compose -f ai_generated/docker-compose.yml up --build
+```
+
+Access the app at: http://localhost:5173
+
+## Dev Setup
+
 ### 1. Install Poetry
 
 ```bash
@@ -17,6 +29,7 @@ poetry install
 ```
 
 And for torch with GPU support:
+
 ```bash
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124 --force-reinstall --no-deps
 ```
@@ -44,13 +57,3 @@ python src/app.py
 ```
 
 Then open the URL printed in the terminal (http://localhost:7860).
-
-### Docker
-
-Run from the repo root:
-
-```bash
-docker compose -f ai_generated/docker-compose.yml up --build
-```
-
-Access the app at: http://localhost:5173
