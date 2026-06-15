@@ -2,7 +2,7 @@ services:
   backend:
     build:
       context: ..
-      dockerfile: ai_generated/backend/Dockerfile
+      dockerfile: external_code/backend/Dockerfile
     ports:
       - "8000:8000"
     restart: unless-stopped
@@ -10,7 +10,7 @@ services:
   frontend:
     build:
       context: ..
-      dockerfile: ai_generated/frontend/Dockerfile
+      dockerfile: external_code/frontend/Dockerfile
     ports:
       - "5173:80"
     depends_on:

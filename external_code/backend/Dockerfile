@@ -3,7 +3,7 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Install backend runtime dependencies
-COPY ai_generated/backend/requirements.txt ./requirements.txt
+COPY external_code/backend/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Application code and pretrained model artifacts

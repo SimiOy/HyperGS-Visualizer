@@ -9,7 +9,7 @@ Educational visualizer for [HyperGS: Hyperspectral 3D Gaussian Splatting](https:
 Run from the repo root:
 
 ```bash
-docker compose -f ai_generated/docker-compose.yml up --build
+docker compose -f external_code/docker-compose.yml up --build
 ```
 
 Access the app at: http://localhost:5173
