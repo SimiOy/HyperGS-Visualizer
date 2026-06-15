@@ -1,5 +1,15 @@
 *.zip
-data/
+
+# keep frame 0
+data/*
+!data/.gitkeep
+!data/complex_facility
+data/complex_facility/*
+!data/complex_facility/Images
+data/complex_facility/Images/*
+!data/complex_facility/Images/MakoSpectrometer-t0000.img
+!data/complex_facility/Images/MakoSpectrometer-t0000.img.hdr
+
 .vscode
 
 # Python

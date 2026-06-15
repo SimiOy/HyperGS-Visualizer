@@ -5,10 +5,6 @@ services:
       dockerfile: ai_generated/backend/Dockerfile
     ports:
       - "8000:8000"
-    volumes:
-      # Hyperspectral dataset (not baked into the image - download it first
-      # with `python scripts/download_data.py`).
-      - ../data:/app/data:ro
     restart: unless-stopped
 
   frontend:
