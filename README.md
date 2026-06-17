@@ -42,18 +42,24 @@ poetry env activate
 & "C:\Users\andre\AppData\Local\pypoetry\Cache\virtualenvs\hypergs-viz-3RQcimve-py3.13\Scripts\activate.ps1""
 ```
 
-### 4. Download the HSI Nerfstudio dataset (not the HS-NeRF Dataset used in the paper)
+### (Optional) 4. Download the HSI Nerfstudio dataset (not the HS-NeRF Dataset used in the paper)
 
 ```bash
 python scripts/download_data.py
 ```
 
-The `.zip` will be automaticlly extracted to the `data/` folder.
+The `.zip` will be automatically extracted to the `data/` folder. Frame 0 is enough to run this project, so downloading the data is optional
 
-### 5. Run the main app GUI
+### 5. Run the backend
 
 ```bash
-python src/app.py
+uvicorn backend.main:app
 ```
 
-Then open the URL printed in the terminal (http://localhost:7860).
+### 6. Run the frontend
+
+```bash
+cd frontend && npm install && npm run dev
+```
+
+Open http://localhost:5173.
